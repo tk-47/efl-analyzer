@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Texas EFL Analyzer</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; color: #1a1a2e; min-height: 100vh; }
+
+/* ── Header ── */
+header { background: #1a1a2e; color: white; padding: 16px 32px; display: flex; align-items: center; gap: 12px; }
+header h1 { font-size: 1.15rem; font-weight: 600; flex: 1; }
+.header-links { display: flex; gap: 10px; align-items: center; }
+.btn-instructions { background: rgba(255,255,255,0.12); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 5px 14px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: background 0.15s; }
+.btn-instructions:hover { background: rgba(255,255,255,0.2); }
+.tdu-badge { font-size: 0.75rem; background: #2563eb; padding: 2px 8px; border-radius: 4px; }
+  .server-dot { width: 8px; height: 8px; border-radius: 50%; background: #6b7280; display: inline-block; margin-right: 5px; transition: background 0.3s; }
+  .server-dot.online { background: #10b981; }
+  .server-status { font-size: 0.72rem; color: rgba(255,255,255,0.5); display: flex; align-items: center; }
+  .extract-row { display: flex; gap: 8px; align-items: stretch; }
+  .extract-row input { flex: 1; }
+  .btn-extract { background: #2563eb; color: white; border: none; padding: 8px 14px; border-radius: 7px; font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+  .btn-extract:hover { background: #1d4ed8; }
+  .btn-extract:disabled { background: #93c5fd; cursor: default; }
+  .btn-open { background: white; color: #374151; border: 1px solid #e5e7eb; padding: 8px 14px; border-radius: 7px; cursor: pointer; white-space: nowrap; font-size: 0.82rem; }
+  .extract-status { margin-top: 8px; font-size: 0.8rem; padding: 8px 12px; border-radius: 6px; display: none; }
+  .extract-status.loading { background: #eff6ff; color: #1d4ed8; display: block; }
+  .extract-status.success { background: #d1fae5; color: #065f46; display: block; }
+  .extract-status.warn    { background: #fffbeb; color: #92400e; display: block; }
+  .extract-status.error   { background: #fee2e2; color: #991b1b; display: block; }
+  .ptc-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 10px; }
+  .ptc-row .ptc-zip { width: 130px; flex-shrink: 0; }
+  .btn-ptc { background: white; color: #2563eb; border: 1px solid #93c5fd; padding: 8px 14px; border-radius: 7px; font-size: 0.82rem; font-weight: 500; cursor: pointer; white-space: nowrap; }
+  .btn-ptc:hover { background: #eff6ff; }
+
+/* ── Tabs ── */
+.tabs { background: white; border-bottom: 1px solid #e5e7eb; display: flex; padding: 0 32px; }
+.tab { padding: 14px 20px; font-size: 0.9rem; font-weight: 500; color: #6b7280; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+.tab.active { color: #2563eb; border-bottom-color: #2563eb; font-weight: 600; }
+.tab:hover:not(.active) { color: #374151; }
+
+/* ── Layout ── */
+.container { max-width: 960px; margin: 0 auto; padding: 28px 24px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Cards ── */
+.card { background: white; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 24px; margin-bottom: 20px; }
+.card h2 { font-size: 0.95rem; font-weight: 600; color: #374151; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.step-num { background: #2563eb; color: white; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; flex-shrink: 0; }
+
+/* ── Form ── */
+label { display: block; font-size: 0.8rem; font-weight: 500; color: #6b7280; margin-bottom: 4px; margin-top: 12px; }
+label:first-of-type { margin-top: 0; }
+input[type="text"], input[type="number"], select {
+  width: 100%; padding: 8px 11px; border: 1px solid #e5e7eb; border-radius: 7px;
+  font-size: 0.875rem; color: #111; background: #fafafa; transition: border 0.15s;
+}
+input:focus, select:focus { outline: none; border-color: #2563eb; background: white; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.row4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; }
+.hint { font-size: 0.75rem; color: #9ca3af; margin-top: 4px; }
+.divider { border: none; border-top: 1px solid #f1f5f9; margin: 16px 0; }
+.tag { display: inline-block; background: #eff6ff; color: #2563eb; padding: 1px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; margin-left: 6px; }
+
+/* ── Rate boxes ── */
+.rate-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
+.rate-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }
+.rate-box .rb-label { font-size: 0.72rem; color: #94a3b8; font-weight: 500; margin-bottom: 6px; }
+.rate-box input { font-size: 1.05rem; font-weight: 700; border: none; background: transparent; padding: 2px 0; width: 80px; }
+.rate-box .rb-unit { font-size: 0.72rem; color: #64748b; margin-top: 2px; }
+
+/* ── Buttons ── */
+.btn-primary { background: #2563eb; color: white; padding: 10px 26px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-secondary { background: #f3f4f6; color: #374151; padding: 10px 18px; border: none; border-radius: 8px; font-size: 0.875rem; cursor: pointer; margin-left: 8px; }
+.btn-add { background: white; color: #2563eb; border: 1px dashed #93c5fd; padding: 9px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.15s; width: 100%; }
+.btn-add:hover { background: #eff6ff; border-color: #2563eb; }
+.btn-remove { background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 2px 6px; border-radius: 4px; }
+.btn-remove:hover { color: #ef4444; background: #fee2e2; }
+.action-row { margin-top: 20px; display: flex; align-items: center; }
+
+/* ── Summary metrics ── */
+.summary-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.metric { background: white; border-radius: 10px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
+.metric .m-label { font-size: 0.72rem; color: #6b7280; font-weight: 500; margin-bottom: 3px; }
+.metric .m-value { font-size: 1.3rem; font-weight: 700; color: #111; }
+.metric .m-sub { font-size: 0.7rem; color: #9ca3af; margin-top: 2px; }
+
+/* ── Tables ── */
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+th { background: #f8fafc; padding: 9px 12px; text-align: left; font-size: 0.72rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e5e7eb; white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; }
+tr:last-child td { border-bottom: none; }
+tr.hl-row { background: #eff6ff; }
+tr.hl-row td { font-weight: 600; color: #1d4ed8; }
+.badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 600; white-space: nowrap; }
+.badge-green { background: #d1fae5; color: #065f46; }
+.badge-yellow { background: #fef3c7; color: #92400e; }
+.badge-red { background: #fee2e2; color: #991b1b; }
+.cell-best { background: #d1fae5; color: #065f46; font-weight: 700; border-radius: 5px; padding: 3px 7px; }
+.cell-worst { color: #9ca3af; }
+
+/* ── Takeaways ── */
+.takeaways { list-style: none; }
+.takeaways li { padding: 9px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.875rem; display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; }
+.takeaways li:last-child { border-bottom: none; }
+.takeaways li .icon { font-size: 0.95rem; flex-shrink: 0; margin-top: 2px; }
+
+/* ── Plan cards (compare mode) ── */
+.plan-cards { display: flex; flex-direction: column; gap: 16px; }
+.plan-card { background: white; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); overflow: hidden; }
+.plan-card-header { padding: 14px 20px; display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 0.9rem; }
+.plan-card-body { padding: 0 20px 20px; }
+.plan-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.plan-title-input { flex: 1; border: none; background: transparent; font-size: 0.9rem; font-weight: 600; color: inherit; padding: 0; outline: none; }
+
+/* ── Compare results ── */
+.compare-plan-label { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.compare-plan-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* ── Modal ── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: white; border-radius: 16px; max-width: 660px; width: calc(100% - 40px); max-height: 88vh; overflow-y: auto; padding: 32px; position: relative; }
+.modal h2 { font-size: 1.15rem; font-weight: 700; margin-bottom: 20px; }
+.modal h3 { font-size: 0.9rem; font-weight: 600; color: #374151; margin: 20px 0 8px; }
+.modal p, .modal li { font-size: 0.875rem; color: #4b5563; line-height: 1.6; }
+.modal ul { padding-left: 20px; margin-top: 6px; }
+.modal li { margin-bottom: 4px; }
+.modal .close-btn { position: absolute; top: 20px; right: 20px; background: #f3f4f6; border: none; border-radius: 6px; width: 30px; height: 30px; cursor: pointer; font-size: 1rem; color: #6b7280; }
+.modal .close-btn:hover { background: #e5e7eb; }
+.modal .efl-diagram { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 0.78rem; line-height: 1.8; color: #374151; margin: 10px 0; }
+.modal .efl-diagram .hl { background: #fef08a; border-radius: 3px; padding: 0 3px; }
+
+/* ── Results hidden state ── */
+#single-results { display: none; }
+#compare-results { display: none; }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .rate-grid, .row3, .row4 { grid-template-columns: 1fr; }
+  .row2 { grid-template-columns: 1fr; }
+  .summary-strip { grid-template-columns: 1fr 1fr; }
+  .tabs { padding: 0 16px; }
+  header { padding: 14px 16px; }
+  .container { padding: 20px 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ HEADER ══════════════ -->
+<header>
+  <h1>⚡ Texas EFL Analyzer</h1>
+  <div class="header-links">
+    <span class="server-status"><span class="server-dot" id="serverDot"></span><span id="serverLabel">checking…</span></span>
+    <button class="btn-instructions" onclick="openModal()">? How to Use</button>
+    <span class="tdu-badge">Deregulated TX</span>
+  </div>
+</header>
+
+<!-- ══════════════ TABS ══════════════ -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('single')">Analyze a Plan</div>
+  <div class="tab" onclick="switchTab('compare')">Compare Plans</div>
+</div>
+
+<!-- ══════════════ INSTRUCTIONS MODAL ══════════════ -->
+<div class="modal-overlay" id="modal" onclick="closeModalOut(event)">
+  <div class="modal">
+    <button class="close-btn" onclick="closeModal()">✕</button>
+    <h2>How to Use This Tool</h2>
+
+    <h3>What is an EFL?</h3>
+    <p>An <strong>Electricity Facts Label (EFL)</strong> is a standardized disclosure document required by the Texas PUC for every electricity plan. Think of it like a nutrition label — it must show you the true all-in price at three specific usage levels.</p>
+
+    <h3>Finding the 3 Rates</h3>
+    <p>Every EFL contains a pricing table that looks like this. The highlighted numbers are all you need:</p>
+    <div class="efl-diagram">
+AVERAGE MONTHLY USE &nbsp;&nbsp; AVERAGE PRICE<br>
+<span class="hl">500 kWh &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 21.8¢ / kWh</span>  ← enter this<br>
+<span class="hl">1,000 kWh &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8.9¢ / kWh</span>   ← and this<br>
+<span class="hl">2,000 kWh &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 14.9¢ / kWh</span>  ← and this
+    </div>
+    <p>These are the <em>all-in average prices</em> — they already include the energy charge, TDU delivery, and any bill credits. Paste the EFL link and open it in a separate browser tab, then read off those three numbers.</p>
+
+    <h3>Why the Rates Look Different at Each Level</h3>
+    <p>The average price per kWh changes across usage levels because of two things:</p>
+    <ul>
+      <li><strong>Fixed monthly charges</strong> — the TDU customer/meter charge (~$4–8/mo) is the same regardless of usage. At 500 kWh it makes up a bigger slice of your bill; at 2,000 kWh it's diluted across more usage.</li>
+      <li><strong>Bill credits</strong> — many plans give a fixed dollar credit (e.g. $125 off) only when you hit a usage threshold (usually 1,000 kWh). That credit dramatically lowers the effective rate at exactly 1,000 kWh, but at 2,000 kWh the same credit is spread over twice the usage — so the rate goes back up.</li>
+    </ul>
+
+    <h3>Bill Credit Plans vs. True Fixed Rate</h3>
+    <ul>
+      <li><strong>True fixed rate:</strong> You pay X¢/kWh + a small fixed charge every month. Simple and predictable.</li>
+      <li><strong>Bill credit plan:</strong> You pay a higher energy rate, but get a fixed dollar credit when usage hits the threshold. Great if you consistently hit the sweet spot; poor value above it.</li>
+    </ul>
+    <p>This tool detects which type a plan is and flags it for you.</p>
+
+    <h3>Bill Credit Threshold</h3>
+    <p>Most bill credit plans trigger at exactly <strong>1,000 kWh</strong>. Some use 2,000 kWh. Check the EFL — it will say something like <em>"A usage credit of $125 will be applied when usage equals or exceeds 1,000 kWh."</em></p>
+
+    <h3>Variable vs. Fixed Plans</h3>
+    <p>If the EFL says <strong>"variable rate"</strong> or the contract term is month-to-month, rates can change every billing cycle. Current March rates in Texas are low — but summer rates (Jul–Aug) historically spike to 14–17¢/kWh. Set Plan Type to "Variable" and the tool will warn you.</p>
+
+    <h3>Comparing Plans</h3>
+    <p>Switch to the <strong>Compare Plans</strong> tab to analyze up to 4 plans side by side. Add each plan's three EFL rates and the tool shows a comparison table at every usage level, with the cheapest plan highlighted in green at each row.</p>
+
+    <h3>TDU Breakdown (Optional)</h3>
+    <p>Selecting your TDU splits the total bill into energy vs. delivery components so you can see exactly where your money goes. Oncor rates are pre-loaded and current as of 3/3/2026.</p>
+  </div>
+</div>
+
+<!-- ══════════════ SINGLE PLAN TAB ══════════════ -->
+<div class="tab-panel active" id="tab-single">
+<div class="container">
+
+  <!-- Step 1: Plan Info -->
+  <div class="card">
+    <h2><span class="step-num">1</span> Plan Info</h2>
+    <label>EFL URL — paste and click Extract to auto-fill rates</label>
+    <div class="extract-row">
+      <input type="text" id="eflUrl" placeholder="https://eflviewer.gexaenergy.com/eflviewer.aspx?… or direct .pdf link" oninput="parseUrl()">
+      <button class="btn-extract" id="btnExtract" onclick="extractFromUrl()">⚡ Extract Rates</button>
+      <button class="btn-open" onclick="openEfl()">Open ↗</button>
+    </div>
+    <div class="extract-status" id="extractStatus"></div>
+    <div class="ptc-row">
+      <div style="font-size:0.78rem;color:#9ca3af;padding-bottom:2px;">Or look up by zip code via Power to Choose:</div>
+      <input type="number" class="ptc-zip" id="ptcZip" placeholder="76132" maxlength="5">
+      <button class="btn-ptc" onclick="ptcLookup()">🔍 PTC Lookup</button>
+    </div>
+    <div class="row2" style="margin-top:12px;">
+      <div><label>Provider Name</label><input type="text" id="providerName" placeholder="e.g. Gexa Energy"></div>
+      <div><label>Plan Name</label><input type="text" id="planName" placeholder="e.g. Eco Saver Plus 12"></div>
+    </div>
+    <div class="row3" style="margin-top:12px;">
+      <div>
+        <label>Plan Type</label>
+        <select id="planType">
+          <option value="fixed">Fixed Rate</option>
+          <option value="variable">Variable Rate</option>
+          <option value="indexed">Indexed Rate</option>
+        </select>
+      </div>
+      <div>
+        <label>Contract Length</label>
+        <select id="contractLength">
+          <option value="0">Month-to-month</option>
+          <option value="6">6 months</option>
+          <option value="12" selected>12 months</option>
+          <option value="24">24 months</option>
+          <option value="36">36 months</option>
+        </select>
+      </div>
+      <div>
+        <label>Early Termination Fee ($)</label>
+        <input type="number" id="etfAmount" placeholder="0" min="0" step="25">
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: EFL Rates -->
+  <div class="card">
+    <h2><span class="step-num">2</span> EFL Average Prices <span class="tag">Read directly from the EFL</span></h2>
+    <p class="hint">Open your EFL link and find the "Average Price" table — it always shows these three numbers. Enter them below.</p>
+    <div class="rate-grid">
+      <div class="rate-box">
+        <div class="rb-label">Average price at 500 kWh/mo</div>
+        <input type="number" id="rate500" placeholder="21.8" step="0.1" min="0">
+        <div class="rb-unit">¢ per kWh</div>
+      </div>
+      <div class="rate-box">
+        <div class="rb-label">Average price at 1,000 kWh/mo</div>
+        <input type="number" id="rate1000" placeholder="8.9" step="0.1" min="0">
+        <div class="rb-unit">¢ per kWh</div>
+      </div>
+      <div class="rate-box">
+        <div class="rb-label">Average price at 2,000 kWh/mo</div>
+        <input type="number" id="rate2000" placeholder="14.9" step="0.1" min="0">
+        <div class="rb-unit">¢ per kWh</div>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="row2">
+      <div>
+        <label>Bill Credit Threshold</label>
+        <select id="creditThreshold">
+          <option value="500">500 kWh</option>
+          <option value="1000" selected>1,000 kWh</option>
+          <option value="2000">2,000 kWh</option>
+          <option value="0">No bill credit / detect automatically</option>
+        </select>
+        <p class="hint">The EFL will say "credit applies when usage ≥ X kWh." Usually 1,000 kWh.</p>
+      </div>
+      <div>
+        <label>Your Typical Monthly Usage (kWh)</label>
+        <input type="number" id="myUsage" placeholder="2000" min="100" max="5000" step="100">
+        <p class="hint">Your row will be highlighted in the results table.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: TDU (optional) -->
+  <div class="card">
+    <h2><span class="step-num">3</span> TDU Breakdown <span class="tag">Optional</span></h2>
+    <p class="hint">Selecting your TDU splits the bill into energy vs. delivery. Leave blank to skip — results are still accurate without it.</p>
+    <div class="row3" style="margin-top:12px;">
+      <div>
+        <label>TDU / Utility</label>
+        <select id="tduSelect" onchange="fillTdu()">
+          <option value="">— Skip —</option>
+          <option value="oncor">Oncor Electric Delivery</option>
+          <option value="centerpoint">CenterPoint Energy</option>
+          <option value="aep_central">AEP Texas Central</option>
+          <option value="aep_north">AEP Texas North</option>
+          <option value="tnmp">Texas-New Mexico Power</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div>
+        <label>TDU Rate (¢/kWh)</label>
+        <input type="number" id="tduPerKwh" placeholder="5.6183" step="0.0001" min="0">
+      </div>
+      <div>
+        <label>TDU Fixed Charge ($/mo)</label>
+        <input type="number" id="tduFixed" placeholder="4.23" step="0.01" min="0">
+      </div>
+    </div>
+    <p class="hint" style="margin-top:8px;">Oncor: 5.6183¢/kWh + $4.23/mo (current as of 3/3/2026). Other TDUs approximate — verify at <a href="https://www.powertochoose.org" target="_blank" style="color:#2563eb;">powertochoose.org</a>.</p>
+  </div>
+
+  <div class="action-row">
+    <button class="btn-primary" onclick="analyzeSingle()">Calculate Breakdown →</button>
+    <button class="btn-secondary" onclick="resetSingle()">Reset</button>
+  </div>
+
+  <!-- Single Results -->
+  <div id="single-results">
+    <hr class="divider" style="margin:28px 0;">
+    <div class="summary-strip" id="summaryStrip"></div>
+    <div class="card">
+      <h2 id="single-results-title">Bill Breakdown</h2>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead id="single-thead"></thead>
+          <tbody id="single-tbody"></tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin-top:10px;">★ = your typical usage &nbsp;|&nbsp; TX avg: ~15.6¢/kWh (March 2026) &nbsp;|&nbsp; Does not include local city/county taxes.</p>
+    </div>
+    <div class="card">
+      <h2>Key Takeaways</h2>
+      <ul class="takeaways" id="takeawayList"></ul>
+    </div>
+  </div>
+
+</div><!-- /container -->
+</div><!-- /tab-single -->
+
+<!-- ══════════════ COMPARE PLANS TAB ══════════════ -->
+<div class="tab-panel" id="tab-compare">
+<div class="container">
+
+  <!-- Shared settings -->
+  <div class="card">
+    <h2>Comparison Settings</h2>
+    <div class="row3">
+      <div>
+        <label>Your Typical Monthly Usage (kWh)</label>
+        <input type="number" id="cmp-myUsage" placeholder="2000" min="100" max="5000" step="100" value="2000">
+      </div>
+      <div>
+        <label>TDU / Utility</label>
+        <select id="cmp-tduSelect" onchange="fillCmpTdu()">
+          <option value="">— Skip —</option>
+          <option value="oncor">Oncor Electric Delivery</option>
+          <option value="centerpoint">CenterPoint Energy</option>
+          <option value="aep_central">AEP Texas Central</option>
+          <option value="aep_north">AEP Texas North</option>
+          <option value="tnmp">Texas-New Mexico Power</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div>
+        <label>Usage Levels to Compare</label>
+        <input type="text" id="cmp-usageLevels" value="500, 1000, 1500, 1800, 2000, 2200, 2500" placeholder="comma-separated kWh values">
+      </div>
+    </div>
+  </div>
+
+  <!-- Plan cards -->
+  <div class="plan-cards" id="planCards"></div>
+
+  <button class="btn-add" onclick="addPlanCard()" id="addPlanBtn">+ Add Another Plan</button>
+
+  <div class="action-row" style="margin-top:16px;">
+    <button class="btn-primary" onclick="analyzeCompare()">Compare Plans →</button>
+    <button class="btn-secondary" onclick="resetCompare()">Reset</button>
+  </div>
+
+  <!-- Compare Results -->
+  <div id="compare-results">
+    <hr class="divider" style="margin:28px 0;">
+
+    <!-- Winner banner -->
+    <div id="winner-banner" style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:10px;padding:16px 20px;margin-bottom:20px;font-size:0.9rem;color:#065f46;"></div>
+
+    <div class="card">
+      <h2>Side-by-Side Bill Comparison</h2>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead id="cmp-thead"></thead>
+          <tbody id="cmp-tbody"></tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin-top:10px;">
+        <span style="background:#d1fae5;padding:1px 6px;border-radius:3px;font-weight:600;">Green</span> = cheapest at that usage level &nbsp;|&nbsp;
+        ★ = your typical usage &nbsp;|&nbsp; TX avg: ~15.6¢/kWh
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Effective Rate by Usage Level</h2>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead id="cmp-rate-thead"></thead>
+          <tbody id="cmp-rate-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" id="cmp-takeaways-card">
+      <h2>Plan-by-Plan Notes</h2>
+      <div id="cmp-takeaways"></div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+</div><!-- /tab-compare -->
+
+<script>
+// ══════════════════════════════════════════
+// SERVER & AUTO-EXTRACT
+// ══════════════════════════════════════════
+const API = "http://localhost:3456";
+let serverOnline = false;
+
+async function checkServer() {
+  try {
+    const r = await fetch(`${API}/api/ptc?zip=00000`, { signal: AbortSignal.timeout(1500) });
+    serverOnline = true;
+  } catch {
+    serverOnline = false;
+  }
+  const dot   = document.getElementById("serverDot");
+  const label = document.getElementById("serverLabel");
+  dot.classList.toggle("online", serverOnline);
+  label.textContent = serverOnline ? "server online" : "server offline";
+  document.getElementById("btnExtract").disabled = !serverOnline;
+  document.getElementById("btnExtract").title = serverOnline ? "" : "Start the server: bun run server.ts";
+}
+
+function setExtractStatus(type, msg) {
+  const el = document.getElementById("extractStatus");
+  el.className = "extract-status " + type;
+  el.innerHTML = msg;
+}
+
+async function extractFromUrl() {
+  const url = document.getElementById("eflUrl").value.trim();
+  if (!url) { alert("Paste an EFL URL first."); return; }
+  if (!serverOnline) { alert("Server is offline. Run: bun run server.ts"); return; }
+
+  setExtractStatus("loading", "⏳ Fetching and parsing EFL…");
+  document.getElementById("btnExtract").disabled = true;
+
+  try {
+    const res  = await fetch(`${API}/api/extract?url=${encodeURIComponent(url)}`);
+    const data = await res.json();
+
+    if (data.success && data.rates) {
+      applyRates(data.rates, data.meta || {});
+      setExtractStatus("success", `✅ Rates extracted automatically from ${data.source}. Review the fields below and click Calculate.`);
+    } else {
+      setExtractStatus("warn", `⚠️ ${data.error || "Could not extract rates."} ${data.hint || ""} <br>You can also try the <strong>PTC Lookup</strong> below, or enter the three rates manually.`);
+    }
+  } catch (e) {
+    setExtractStatus("error", "❌ Server error: " + e.message);
+  } finally {
+    document.getElementById("btnExtract").disabled = false;
+  }
+}
+
+async function ptcLookup() {
+  const zip = document.getElementById("ptcZip").value.trim();
+  const url = document.getElementById("eflUrl").value.trim();
+  if (!zip || zip.length < 5) { alert("Enter a 5-digit zip code."); return; }
+  if (!serverOnline) { alert("Server is offline. Run: bun run server.ts"); return; }
+
+  setExtractStatus("loading", "⏳ Querying Power to Choose for zip " + zip + "…");
+
+  try {
+    const res  = await fetch(`${API}/api/ptc?zip=${zip}&url=${encodeURIComponent(url)}`);
+    const data = await res.json();
+
+    if (data.matched) {
+      const m = data.matched;
+      applyRates({ r500: m.r500, r1000: m.r1000, r2000: m.r2000 }, {
+        provider: m.provider, planName: m.planName, planType: m.planType, term: m.term
+      });
+      setExtractStatus("success", `✅ Matched "${m.planName}" by ${m.provider} from PTC database (${data.totalPlans} plans in zip ${zip}).`);
+    } else {
+      // Show a dropdown of all plans found
+      const opts = (data.all || []).map((p, i) =>
+        `<option value="${i}">${p.provider} — ${p.planName} (${p.r1000}¢ @ 1000kWh)</option>`
+      ).join("");
+      setExtractStatus("warn", `
+        ⚠️ Couldn't auto-match your EFL URL to a plan. Found ${data.totalPlans} plans in zip ${zip} — select one:<br>
+        <select id="ptcPlanPicker" style="margin-top:6px;width:100%;padding:6px;border-radius:6px;border:1px solid #e5e7eb;font-size:0.82rem;">
+          <option value="">— choose a plan —</option>${opts}
+        </select>
+        <button onclick="applyPtcPlan(${JSON.stringify(data.all).replace(/"/g,"'")})" style="margin-top:6px;padding:5px 12px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;">Apply Selected</button>
+      `);
+    }
+  } catch (e) {
+    setExtractStatus("error", "❌ " + e.message);
+  }
+}
+
+function applyPtcPlan(plans) {
+  const sel = document.getElementById("ptcPlanPicker");
+  const idx = parseInt(sel?.value);
+  if (isNaN(idx)) return;
+  const p = plans[idx];
+  applyRates({ r500: p.r500, r1000: p.r1000, r2000: p.r2000 }, { provider: p.provider, planName: p.planName });
+  setExtractStatus("success", `✅ Applied: ${p.provider} — ${p.planName}`);
+}
+
+function applyRates(rates, meta) {
+  if (rates.r500)  document.getElementById("rate500").value  = rates.r500;
+  if (rates.r1000) document.getElementById("rate1000").value = rates.r1000;
+  if (rates.r2000) document.getElementById("rate2000").value = rates.r2000;
+  if (meta.provider) document.getElementById("providerName").value = meta.provider;
+  if (meta.planName) document.getElementById("planName").value     = meta.planName;
+  if (meta.planType) document.getElementById("planType").value     = meta.planType;
+  if (meta.term) {
+    const sel = document.getElementById("contractLength");
+    for (const opt of sel.options) { if (opt.value === String(meta.term)) { sel.value = meta.term; break; } }
+  }
+  if (meta.creditThreshold) {
+    const sel = document.getElementById("creditThreshold");
+    for (const opt of sel.options) { if (opt.value === String(meta.creditThreshold)) { sel.value = meta.creditThreshold; break; } }
+  }
+}
+
+// ══════════════════════════════════════════
+// CONSTANTS & DATA
+// ══════════════════════════════════════════
+const TX_AVG = 15.6;
+
+const PLAN_COLORS = ['#2563eb','#7c3aed','#ea580c','#16a34a'];
+const PLAN_COLORS_LIGHT = ['#dbeafe','#ede9fe','#ffedd5','#dcfce7'];
+
+const TDU_RATES = {
+  oncor:       { perKwh: 5.6183, fixed: 4.23 },
+  centerpoint: { perKwh: 5.280,  fixed: 5.17 },
+  aep_central: { perKwh: 5.190,  fixed: 4.95 },
+  aep_north:   { perKwh: 5.440,  fixed: 4.95 },
+  tnmp:        { perKwh: 5.830,  fixed: 7.85 },
+};
+
+// ══════════════════════════════════════════
+// TABS & MODAL
+// ══════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['single','compare'][i] === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+function openModal()  { document.getElementById('modal').classList.add('open'); }
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function closeModalOut(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+
+// ══════════════════════════════════════════
+// SINGLE PLAN
+// ══════════════════════════════════════════
+function parseUrl() {
+  const url = document.getElementById('eflUrl').value;
+  const prod = url.match(/prodcode=([^&]+)/i);
+  const tdu  = url.match(/tdspcode=([^&]+)/i);
+  if (prod) {
+    if (url.toLowerCase().includes('gexa')) document.getElementById('providerName').value = 'Gexa Energy';
+    document.getElementById('planName').value = prod[1];
+  }
+  if (tdu) {
+    const t = tdu[1].toLowerCase();
+    const sel = document.getElementById('tduSelect');
+    if      (t.includes('oncor'))      { sel.value = 'oncor';       fillTdu(); }
+    else if (t.includes('centerpoint') || t.includes('cnp')) { sel.value = 'centerpoint'; fillTdu(); }
+    else if (t.includes('aep_c') || t.includes('aeptc'))     { sel.value = 'aep_central'; fillTdu(); }
+    else if (t.includes('tnmp'))       { sel.value = 'tnmp';        fillTdu(); }
+  }
+}
+function openEfl() {
+  const url = document.getElementById('eflUrl').value.trim();
+  if (url) window.open(url, '_blank');
+}
+function fillTdu() {
+  const v = document.getElementById('tduSelect').value;
+  if (TDU_RATES[v]) {
+    document.getElementById('tduPerKwh').value = TDU_RATES[v].perKwh;
+    document.getElementById('tduFixed').value  = TDU_RATES[v].fixed;
+  }
+}
+
+// Core math: given 3 EFL average rates, back-calculate all components
+function calcComponents(r500, r1000, r2000) {
+  const combinedRate     = 2 * r2000 - r1000;          // ¢/kWh
+  const fixed            = (r500  - combinedRate) * 5;  // $ (at 500 kWh, no credit)
+  const fixedMinusCredit = (r1000 - combinedRate) * 10; // $ (at 1000 kWh, with credit)
+  const credit           = fixed - fixedMinusCredit;    // $
+  return { combinedRate, fixed, fixedMinusCredit, credit };
+}
+
+function billAt(usage, comp, threshold) {
+  const hasCredit = threshold > 0 && usage >= threshold;
+  const varCost   = (comp.combinedRate / 100) * usage;
+  const fixAmt    = hasCredit ? comp.fixedMinusCredit : comp.fixed;
+  return varCost + fixAmt;
+}
+
+function ratingBadge(effRate) {
+  const d = effRate - TX_AVG;
+  if (d <= -2) return `<span class="badge badge-green">↓ ${Math.abs(d).toFixed(1)}¢ below avg</span>`;
+  if (d <= 0)  return `<span class="badge badge-yellow">Near avg</span>`;
+  return `<span class="badge badge-red">↑ ${d.toFixed(1)}¢ above avg</span>`;
+}
+
+function analyzeSingle() {
+  const r500       = parseFloat(document.getElementById('rate500').value);
+  const r1000      = parseFloat(document.getElementById('rate1000').value);
+  const r2000      = parseFloat(document.getElementById('rate2000').value);
+  const threshold  = parseInt(document.getElementById('creditThreshold').value) || 0;
+  const myUsage    = parseInt(document.getElementById('myUsage').value) || 2000;
+  const etf        = parseFloat(document.getElementById('etfAmount').value) || 0;
+  const planType   = document.getElementById('planType').value;
+  const tduPerKwh  = parseFloat(document.getElementById('tduPerKwh').value) || null;
+  const tduFixed   = parseFloat(document.getElementById('tduFixed').value) || null;
+  const provider   = document.getElementById('providerName').value || 'Plan';
+  const planName   = document.getElementById('planName').value || '';
+
+  if (isNaN(r500) || isNaN(r1000) || isNaN(r2000)) {
+    alert('Please enter the three EFL average rates (500 / 1,000 / 2,000 kWh).');
+    return;
+  }
+
+  const comp         = calcComponents(r500, r1000, r2000);
+  const isBillCredit = comp.credit > 2;
+  const hasEnergy    = tduPerKwh !== null && !isNaN(tduPerKwh);
+  const energyRate   = hasEnergy ? comp.combinedRate - tduPerKwh : null;
+
+  const usageLevels = [500, 750, 1000, 1250, 1500, 1800, 2000, 2200, 2500, 3000];
+  if (!usageLevels.includes(myUsage)) { usageLevels.push(myUsage); usageLevels.sort((a,b)=>a-b); }
+
+  // Title
+  document.getElementById('single-results-title').textContent =
+    provider + (planName ? ' — ' + planName : '') + ': Bill Breakdown';
+
+  // Table header
+  const thead = document.getElementById('single-thead');
+  if (hasEnergy) {
+    thead.innerHTML = `<tr><th>Usage</th><th>Energy</th><th>TDU Delivery</th><th>Fixed</th><th>Bill Credit</th><th>Total Bill</th><th>Eff. Rate</th><th>vs TX Avg</th></tr>`;
+  } else {
+    thead.innerHTML = `<tr><th>Usage</th><th colspan="3">Variable Cost</th><th>Bill Credit</th><th>Total Bill</th><th>Eff. Rate</th><th>vs TX Avg</th></tr>`;
+  }
+
+  // Table body
+  const tbody = document.getElementById('single-tbody');
+  tbody.innerHTML = '';
+  let myBill = null;
+
+  usageLevels.forEach(usage => {
+    const total    = billAt(usage, comp, threshold);
+    const effRate  = (total / usage) * 100;
+    const hasCredit = threshold > 0 && usage >= threshold;
+    const isMe     = usage === myUsage;
+    if (isMe) myBill = total;
+
+    const tr = document.createElement('tr');
+    if (isMe) tr.className = 'hl-row';
+
+    if (hasEnergy) {
+      const eCost = (energyRate / 100) * usage;
+      const tCost = (tduPerKwh / 100) * usage + (tduFixed || 0);
+      tr.innerHTML = `
+        <td>${usage.toLocaleString()} kWh${isMe?' ★':''}</td>
+        <td>$${eCost.toFixed(2)}</td>
+        <td>$${tCost.toFixed(2)}</td>
+        <td>$${(tduFixed||0).toFixed(2)}</td>
+        <td style="color:#10b981;font-weight:${hasCredit?'600':'400'}">${hasCredit?'-$'+comp.credit.toFixed(2):'—'}</td>
+        <td style="font-weight:600">$${total.toFixed(2)}</td>
+        <td>${effRate.toFixed(2)}¢</td>
+        <td>${ratingBadge(effRate)}</td>`;
+    } else {
+      const varCost = (comp.combinedRate / 100) * usage;
+      tr.innerHTML = `
+        <td>${usage.toLocaleString()} kWh${isMe?' ★':''}</td>
+        <td colspan="3">$${varCost.toFixed(2)}</td>
+        <td style="color:#10b981;font-weight:${hasCredit?'600':'400'}">${hasCredit?'-$'+comp.credit.toFixed(2):'—'}</td>
+        <td style="font-weight:600">$${total.toFixed(2)}</td>
+        <td>${effRate.toFixed(2)}¢</td>
+        <td>${ratingBadge(effRate)}</td>`;
+    }
+    tbody.appendChild(tr);
+  });
+
+  // Summary strip
+  const myEffRate = myBill ? (myBill / myUsage * 100) : null;
+  document.getElementById('summaryStrip').innerHTML = `
+    <div class="metric">
+      <div class="m-label">Marginal Rate</div>
+      <div class="m-value">${comp.combinedRate.toFixed(2)}¢</div>
+      <div class="m-sub">per additional kWh</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Bill Credit</div>
+      <div class="m-value">${isBillCredit ? '$' + comp.credit.toFixed(0) : 'None'}</div>
+      <div class="m-sub">${isBillCredit ? 'when ≥ ' + threshold.toLocaleString() + ' kWh' : 'true fixed rate'}</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Your Est. Monthly Bill</div>
+      <div class="m-value">${myBill ? '$' + myBill.toFixed(2) : '—'}</div>
+      <div class="m-sub">at ${myUsage.toLocaleString()} kWh/mo</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Your Effective Rate</div>
+      <div class="m-value" style="color:${myEffRate && myEffRate < TX_AVG ? '#10b981' : '#ef4444'}">${myEffRate ? myEffRate.toFixed(2) + '¢' : '—'}</div>
+      <div class="m-sub">${myEffRate ? (myEffRate < TX_AVG ? '↓ below TX avg' : '↑ above TX avg') : ''}</div>
+    </div>`;
+
+  // Takeaways
+  const ta = [];
+  if (planType === 'variable') {
+    ta.push({ icon: '⚠️', text: '<strong>Variable rate plan.</strong> Rates change every month. Current March rates are low, but Texas summer rates (Jul–Aug) historically spike to 14–17¢/kWh or higher during heat events.' });
+  } else {
+    ta.push({ icon: '🔒', text: '<strong>Fixed rate plan.</strong> Your energy charge per kWh is locked in for the contract term and will not change (TDU pass-through adjustments aside).' });
+  }
+  if (isBillCredit) {
+    ta.push({ icon: '💡', text: `<strong>Bill credit plan.</strong> You get a <strong>$${comp.credit.toFixed(0)} credit</strong> only when usage reaches ${threshold.toLocaleString()} kWh. The credit is a fixed amount — it doesn't scale with usage, so the higher you go above the threshold, the less value you get per kWh.` });
+    ta.push({ icon: '🎯', text: `<strong>Sweet spot: ${threshold.toLocaleString()} kWh.</strong> That's where the advertised low rate applies. Drop below ${threshold.toLocaleString()} kWh and you lose the entire $${comp.credit.toFixed(0)} credit at once.` });
+  } else {
+    ta.push({ icon: '✅', text: `<strong>True fixed rate — no bill credit gimmick.</strong> You pay ${comp.combinedRate.toFixed(2)}¢/kWh plus ~$${comp.fixed.toFixed(2)}/month in fixed charges regardless of usage.` });
+  }
+  ta.push({ icon: '📈', text: `<strong>Marginal rate: ${comp.combinedRate.toFixed(2)}¢/kWh.</strong> Every kWh above the credit threshold costs ${comp.combinedRate.toFixed(2)}¢. At 2,000+ kWh per month, this is the number that really determines your bill.` });
+  if (comp.fixed > 1) {
+    ta.push({ icon: '🧾', text: `<strong>Fixed charge: ~$${comp.fixed.toFixed(2)}/month.</strong> This is the TDU customer/meter charge you pay regardless of usage — it's why the 500 kWh rate (${r500}¢) is so much higher than the 1,000 kWh rate. The fixed cost is spread over fewer kWh.` });
+  }
+  if (myEffRate) {
+    const diff = myEffRate - TX_AVG;
+    if (diff > 2) ta.push({ icon: '🔴', text: `<strong>At ${myUsage.toLocaleString()} kWh, this plan runs ${diff.toFixed(1)}¢/kWh above the TX average.</strong> There are likely better-value plans, especially simpler fixed-rate options without bill credit structures.` });
+    else if (diff > 0) ta.push({ icon: '🟡', text: `At ${myUsage.toLocaleString()} kWh, this plan is near the Texas average. Worth shopping for a true fixed-rate plan.` });
+    else ta.push({ icon: '🟢', text: `At ${myUsage.toLocaleString()} kWh, this plan beats the Texas average by ${Math.abs(diff).toFixed(1)}¢/kWh — solid value.${planType !== 'variable' ? ' Your energy charge is fixed; the only thing that can change your bill is TDU pass-through adjustments (utility delivery fees set by the state, not your REP).' : ''}` });
+  }
+  if (etf > 0) {
+    ta.push({ icon: '💸', text: `<strong>Early termination fee: $${etf}.</strong> You're locked in for the contract term. Switching mid-contract costs $${etf}.` });
+  }
+
+  const ul = document.getElementById('takeawayList');
+  ul.innerHTML = '';
+  ta.forEach(t => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="icon">${t.icon}</span><span>${t.text}</span>`;
+    ul.appendChild(li);
+  });
+
+  document.getElementById('single-results').style.display = 'block';
+  document.getElementById('single-results').scrollIntoView({ behavior: 'smooth' });
+}
+
+function resetSingle() {
+  document.querySelectorAll('#tab-single input[type=text], #tab-single input[type=number]').forEach(i => i.value = '');
+  document.getElementById('tduSelect').value = '';
+  document.getElementById('planType').value = 'fixed';
+  document.getElementById('contractLength').value = '12';
+  document.getElementById('creditThreshold').value = '1000';
+  document.getElementById('single-results').style.display = 'none';
+}
+
+// ══════════════════════════════════════════
+// COMPARE PLANS
+// ══════════════════════════════════════════
+let planCardCount = 0;
+const MAX_PLANS = 4;
+
+function addPlanCard(defaults) {
+  if (planCardCount >= MAX_PLANS) return;
+  const idx   = planCardCount++;
+  const color = PLAN_COLORS[idx];
+  const light = PLAN_COLORS_LIGHT[idx];
+  const id    = 'plan-' + idx;
+
+  const card = document.createElement('div');
+  card.className = 'plan-card';
+  card.id = id;
+  card.innerHTML = `
+    <div class="plan-card-header" style="background:${light};color:${color};">
+      <span class="plan-dot" style="background:${color};"></span>
+      <input class="plan-title-input" style="color:${color};" type="text" value="${defaults?.name || 'Plan ' + (idx+1)}" placeholder="Plan name">
+      ${idx >= 2 ? `<button class="btn-remove" onclick="removePlanCard('${id}')" title="Remove">✕</button>` : ''}
+    </div>
+    <div class="plan-card-body">
+      <div class="rate-grid">
+        <div class="rate-box">
+          <div class="rb-label">Avg price at 500 kWh</div>
+          <input type="number" class="p-r500" placeholder="21.8" step="0.1" min="0" value="${defaults?.r500||''}">
+          <div class="rb-unit">¢ per kWh</div>
+        </div>
+        <div class="rate-box">
+          <div class="rb-label">Avg price at 1,000 kWh</div>
+          <input type="number" class="p-r1000" placeholder="8.9" step="0.1" min="0" value="${defaults?.r1000||''}">
+          <div class="rb-unit">¢ per kWh</div>
+        </div>
+        <div class="rate-box">
+          <div class="rb-label">Avg price at 2,000 kWh</div>
+          <input type="number" class="p-r2000" placeholder="14.9" step="0.1" min="0" value="${defaults?.r2000||''}">
+          <div class="rb-unit">¢ per kWh</div>
+        </div>
+      </div>
+      <div class="row3" style="margin-top:12px;">
+        <div>
+          <label>Bill Credit Threshold</label>
+          <select class="p-threshold">
+            <option value="500">500 kWh</option>
+            <option value="1000" selected>1,000 kWh</option>
+            <option value="2000">2,000 kWh</option>
+            <option value="0">No credit</option>
+          </select>
+        </div>
+        <div>
+          <label>Plan Type</label>
+          <select class="p-type">
+            <option value="fixed">Fixed Rate</option>
+            <option value="variable">Variable Rate</option>
+            <option value="indexed">Indexed</option>
+          </select>
+        </div>
+        <div>
+          <label>ETF ($)</label>
+          <input type="number" class="p-etf" placeholder="0" min="0" step="25" value="${defaults?.etf||''}">
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('planCards').appendChild(card);
+  updateAddBtn();
+}
+
+function removePlanCard(id) {
+  document.getElementById(id)?.remove();
+  planCardCount--;
+  // Re-number remaining cards
+  const cards = document.querySelectorAll('.plan-card');
+  cards.forEach((c, i) => {
+    c.id = 'plan-' + i;
+    const h = c.querySelector('.plan-card-header');
+    h.style.background = PLAN_COLORS_LIGHT[i];
+    h.style.color = PLAN_COLORS[i];
+    const dot = h.querySelector('.plan-dot');
+    dot.style.background = PLAN_COLORS[i];
+    const inp = h.querySelector('.plan-title-input');
+    inp.style.color = PLAN_COLORS[i];
+  });
+  planCardCount = cards.length;
+  updateAddBtn();
+}
+
+function updateAddBtn() {
+  document.getElementById('addPlanBtn').style.display = planCardCount >= MAX_PLANS ? 'none' : 'block';
+}
+
+function fillCmpTdu() {
+  // No-op — TDU for compare is handled at analysis time from shared selector
+}
+
+function analyzeCompare() {
+  const cards = document.querySelectorAll('.plan-card');
+  if (cards.length < 2) { alert('Add at least 2 plans to compare.'); return; }
+
+  const myUsage = parseInt(document.getElementById('cmp-myUsage').value) || 2000;
+  const tduKey  = document.getElementById('cmp-tduSelect').value;
+  const rawLevels = document.getElementById('cmp-usageLevels').value
+    .split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0);
+  const usageLevels = [...new Set([...rawLevels, myUsage])].sort((a,b)=>a-b);
+
+  // Collect plan data
+  const plans = [];
+  let valid = true;
+  cards.forEach((card, i) => {
+    const name  = card.querySelector('.plan-title-input').value.trim() || `Plan ${i+1}`;
+    const r500  = parseFloat(card.querySelector('.p-r500').value);
+    const r1000 = parseFloat(card.querySelector('.p-r1000').value);
+    const r2000 = parseFloat(card.querySelector('.p-r2000').value);
+    const threshold = parseInt(card.querySelector('.p-threshold').value) || 0;
+    const type  = card.querySelector('.p-type').value;
+    const etf   = parseFloat(card.querySelector('.p-etf').value) || 0;
+
+    if (isNaN(r500) || isNaN(r1000) || isNaN(r2000)) {
+      alert(`Please fill in all three rates for "${name}".`);
+      valid = false; return;
+    }
+    const comp = calcComponents(r500, r1000, r2000);
+    plans.push({ name, r500, r1000, r2000, threshold, type, etf, comp, color: PLAN_COLORS[i], light: PLAN_COLORS_LIGHT[i] });
+  });
+  if (!valid) return;
+
+  // ── Bill comparison table ──
+  const cmpThead = document.getElementById('cmp-thead');
+  const cmpTbody = document.getElementById('cmp-tbody');
+
+  const planHeaders = plans.map(p =>
+    `<th><span class="compare-plan-label"><span class="compare-plan-dot" style="background:${p.color}"></span>${p.name}</span></th>`
+  ).join('');
+  cmpThead.innerHTML = `<tr><th>Usage</th>${planHeaders}<th>Cheapest</th></tr>`;
+
+  cmpTbody.innerHTML = '';
+  usageLevels.forEach(usage => {
+    const bills = plans.map(p => billAt(usage, p.comp, p.threshold));
+    const minBill = Math.min(...bills);
+    const isMe = usage === myUsage;
+
+    const cells = bills.map((b, i) => {
+      const isBest = b === minBill;
+      return `<td>${isBest ? `<span class="cell-best">$${b.toFixed(2)}</span>` : `<span class="cell-worst">$${b.toFixed(2)}</span>`}</td>`;
+    }).join('');
+
+    const bestIdx = bills.indexOf(minBill);
+    const bestLabel = `<span style="color:${plans[bestIdx].color};font-weight:600;">${plans[bestIdx].name}</span>`;
+
+    const tr = document.createElement('tr');
+    if (isMe) tr.className = 'hl-row';
+    tr.innerHTML = `<td>${usage.toLocaleString()} kWh${isMe?' ★':''}</td>${cells}<td>${bestLabel}</td>`;
+    cmpTbody.appendChild(tr);
+  });
+
+  // ── Effective rate table ──
+  const rThead = document.getElementById('cmp-rate-thead');
+  const rTbody = document.getElementById('cmp-rate-tbody');
+  rThead.innerHTML = `<tr><th>Usage</th>${planHeaders}</tr>`;
+  rTbody.innerHTML = '';
+
+  usageLevels.forEach(usage => {
+    const rates = plans.map(p => (billAt(usage, p.comp, p.threshold) / usage) * 100);
+    const minRate = Math.min(...rates);
+    const isMe = usage === myUsage;
+
+    const cells = rates.map((r, i) => {
+      const isBest = r === minRate;
+      const badge = ratingBadge(r);
+      return `<td>${isBest ? `<strong style="color:#065f46">${r.toFixed(2)}¢</strong>` : `${r.toFixed(2)}¢`} ${badge}</td>`;
+    }).join('');
+
+    const tr = document.createElement('tr');
+    if (isMe) tr.className = 'hl-row';
+    tr.innerHTML = `<td>${usage.toLocaleString()} kWh${isMe?' ★':''}</td>${cells}`;
+    rTbody.appendChild(tr);
+  });
+
+  // ── Winner banner ──
+  const myBills = plans.map(p => billAt(myUsage, p.comp, p.threshold));
+  const myMinBill = Math.min(...myBills);
+  const winnerIdx = myBills.indexOf(myMinBill);
+  const winner = plans[winnerIdx];
+  const savings = myBills.map((b,i) => i !== winnerIdx ? b - myMinBill : 0);
+  const maxSavings = Math.max(...savings);
+
+  document.getElementById('winner-banner').innerHTML = `
+    🏆 <strong>${winner.name}</strong> is cheapest at your usage (${myUsage.toLocaleString()} kWh):
+    <strong>$${myMinBill.toFixed(2)}/month</strong> at ${(myMinBill/myUsage*100).toFixed(2)}¢/kWh —
+    saves up to <strong>$${maxSavings.toFixed(2)}/month</strong> vs. the most expensive option.`;
+
+  // ── Per-plan notes ──
+  const taDiv = document.getElementById('cmp-takeaways');
+  taDiv.innerHTML = '';
+  plans.forEach(p => {
+    const comp = p.comp;
+    const isBillCredit = comp.credit > 2;
+    const myBill = billAt(myUsage, comp, p.threshold);
+    const myEff = (myBill / myUsage) * 100;
+    const notes = [];
+
+    if (p.type === 'variable') notes.push('⚠️ <strong>Variable rate</strong> — rates can spike in summer.');
+    if (isBillCredit) notes.push(`💡 <strong>Bill credit plan</strong> — $${comp.credit.toFixed(0)} credit when usage ≥ ${p.threshold.toLocaleString()} kWh. Credit doesn't scale above the threshold.`);
+    else notes.push(`✅ <strong>True fixed rate</strong> — ${comp.combinedRate.toFixed(2)}¢/kWh + ~$${comp.fixed.toFixed(2)} fixed/month.`);
+    notes.push(`📈 Marginal rate: <strong>${comp.combinedRate.toFixed(2)}¢/kWh</strong>`);
+    const diff = myEff - TX_AVG;
+    if (diff > 1) notes.push(`🔴 At ${myUsage.toLocaleString()} kWh: <strong>${myEff.toFixed(2)}¢/kWh</strong> — ${diff.toFixed(1)}¢ above TX avg`);
+    else if (diff >= 0) notes.push(`🟡 At ${myUsage.toLocaleString()} kWh: <strong>${myEff.toFixed(2)}¢/kWh</strong> — near TX avg`);
+    else notes.push(`🟢 At ${myUsage.toLocaleString()} kWh: <strong>${myEff.toFixed(2)}¢/kWh</strong> — ${Math.abs(diff).toFixed(1)}¢ below TX avg`);
+    if (p.etf > 0) notes.push(`🔒 ETF: $${p.etf}`);
+
+    const section = document.createElement('div');
+    section.style.cssText = 'margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #f1f5f9;';
+    section.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="width:12px;height:12px;border-radius:50%;background:${p.color};display:inline-block;flex-shrink:0;"></span>
+        <strong style="color:${p.color}">${p.name}</strong>
+      </div>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:6px;">
+        ${notes.map(n => `<li style="font-size:0.875rem;color:#374151;line-height:1.5;">${n}</li>`).join('')}
+      </ul>`;
+    taDiv.appendChild(section);
+  });
+
+  document.getElementById('compare-results').style.display = 'block';
+  document.getElementById('compare-results').scrollIntoView({ behavior: 'smooth' });
+}
+
+function resetCompare() {
+  document.getElementById('planCards').innerHTML = '';
+  planCardCount = 0;
+  updateAddBtn();
+  document.getElementById('compare-results').style.display = 'none';
+  // Re-add 2 default cards
+  addPlanCard();
+  addPlanCard();
+}
+
+// ── Init ──
+addPlanCard();
+addPlanCard();
+checkServer();
+setInterval(checkServer, 15000); // re-check every 15s
+</script>
+</body>
+</html>

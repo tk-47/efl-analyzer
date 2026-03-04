@@ -1,0 +1,16 @@
+{
+  "name": "efl-analyzer",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "pdf-parse": "^2.4.5",
+    "playwright-core": "^1.58.2"
+  }
+}
