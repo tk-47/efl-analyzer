@@ -297,27 +297,25 @@ tr.hl-row td { font-weight: 600; color: #1d4ed8; }
       <div style="display:flex;flex-direction:column;gap:10px;">
         <div style="display:flex;gap:10px;align-items:flex-start;font-size:0.875rem;color:#166534;">
           <strong style="flex-shrink:0;">Step 1 →</strong>
-          <span>Go to <strong>Find Plans by Zip</strong>. Enter your zip code and your typical monthly kWh usage. Sort by the ★ column to see which plans are cheapest at your usage level. Narrow it down to 2–3 favorites using the filters.</span>
+          <span>Enter your Texas zip code and your typical monthly kWh usage (check a recent bill if unsure). Click <strong>Search Plans</strong>. Sort by the <strong>★ column</strong> to rank plans by cost at your usage level. Use filters to narrow by Fixed/Variable, renewable, provider, etc.</span>
         </div>
         <div style="display:flex;gap:10px;align-items:flex-start;font-size:0.875rem;color:#166534;">
           <strong style="flex-shrink:0;">Step 2 →</strong>
-          <span>For each finalist, click <strong>EFL ↗</strong> to open its official Facts Sheet. If the link is missing, visit <a href="https://www.powertochoose.org" target="_blank" style="color:#15803d;font-weight:600;">PowerToChoose.org</a>, search for the plan by name, and click <em>Electricity Facts Label</em> to open it.</span>
+          <span>Click <strong>+ Compare</strong> on 2–4 plans you like. The tool automatically fetches the official Electricity Facts Label (EFL) for each plan and loads the precise rates — no copy/paste needed. You'll see a green "✓ Precise EFL rates loaded" confirmation in each plan card.</span>
         </div>
         <div style="display:flex;gap:10px;align-items:flex-start;font-size:0.875rem;color:#166534;">
           <strong style="flex-shrink:0;">Step 3 →</strong>
-          <span>When the Facts Sheet opens in your browser, <strong>copy the web address</strong> from the address bar at the top of the page.</span>
+          <span>Go to <strong>Compare Plans</strong>, set your usage level, and click <strong>Compare Plans →</strong> to see a side-by-side bill breakdown at every usage level. The cheapest plan at each level is highlighted in green.</span>
         </div>
         <div style="display:flex;gap:10px;align-items:flex-start;font-size:0.875rem;color:#166534;">
           <strong style="flex-shrink:0;">Step 4 →</strong>
-          <span>Go to <strong>Analyze a Plan</strong>, paste the URL into the EFL URL box, and click <strong>⚡ Extract Rates</strong>. The tool reads the official numbers and gives you a precise breakdown at your usage level.</span>
-        </div>
-        <div style="display:flex;gap:10px;align-items:flex-start;font-size:0.875rem;color:#166534;">
-          <strong style="flex-shrink:0;">Step 5 →</strong>
-          <span>Repeat for your top 2–3 plans, then use <strong>Compare Plans</strong> to see them side by side.</span>
+          <span>Want a full breakdown of a single plan? Click <strong>Analyze</strong> on any row. The tool auto-loads the EFL rates and calculates your estimated bill, effective rate, bill credit details, and key takeaways — then click <strong>Calculate Breakdown →</strong>.</span>
         </div>
       </div>
     </div>
-    <p style="font-size:0.8rem;color:#6b7280;margin-bottom:16px;">The zip code search is a great starting point, but the Facts Sheet analysis is more precise — it reads the exact bill credit rules directly from the official document, which matters most at higher usage levels.</p>
+    <div style="background:#fefce8;border:1px solid #fde68a;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:0.8rem;color:#713f12;">
+      <strong>If auto-extract fails:</strong> A yellow warning will appear and the tool falls back to zip-lookup rates, which are still a good estimate. For exact rates, click <strong>EFL ↗</strong> on the plan row to open the official Facts Sheet, copy the URL from your browser, paste it into the <em>Analyze a Plan</em> tab, and click <strong>Extract Rates</strong>.
+    </div>
 
     <h3>What is an EFL?</h3>
     <p>An <strong>Electricity Facts Label (EFL)</strong> is a standardized disclosure document required by the Texas PUC for every electricity plan. Think of it like a nutrition label — it must show you the true all-in price at three specific usage levels.</p>
@@ -428,39 +426,36 @@ AVERAGE MONTHLY USE &nbsp;&nbsp; AVERAGE PRICE<br>
 
     <!-- Next Steps guide -->
     <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:20px 24px;margin-bottom:20px;">
-      <div style="font-size:0.9rem;font-weight:700;color:#1e40af;margin-bottom:14px;">📋 How to Use These Results</div>
+      <div style="font-size:0.9rem;font-weight:700;color:#1e40af;margin-bottom:14px;">What to do next</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
         <div style="display:flex;gap:10px;align-items:flex-start;">
           <span style="background:#2563eb;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;margin-top:1px;">1</span>
           <div>
             <div style="font-size:0.82rem;font-weight:600;color:#1e40af;margin-bottom:2px;">Sort & filter to find your best options</div>
-            <div style="font-size:0.78rem;color:#3b82f6;line-height:1.5;">Click the <strong>★ column header</strong> to sort by cost at your usage. Use filters to narrow by Fixed/Variable, renewable, etc. Pick 2–3 plans you like.</div>
+            <div style="font-size:0.78rem;color:#3b82f6;line-height:1.5;">Click the <strong>★ column header</strong> to sort by cost at your usage level. Use filters to narrow by Fixed/Variable, renewable, provider, etc.</div>
           </div>
         </div>
         <div style="display:flex;gap:10px;align-items:flex-start;">
           <span style="background:#2563eb;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;margin-top:1px;">2</span>
           <div>
-            <div style="font-size:0.82rem;font-weight:600;color:#1e40af;margin-bottom:2px;">Get the official Facts Sheet (EFL)</div>
-            <div style="font-size:0.78rem;color:#3b82f6;line-height:1.5;">Click <strong>EFL ↗</strong> on a plan row to open its Facts Sheet. If there's no link, go to <a href="https://www.powertochoose.org" target="_blank" style="color:#1d4ed8;font-weight:600;">PowerToChoose.org</a>, search the plan name, and click <em>Electricity Facts Label</em>.</div>
+            <div style="font-size:0.82rem;font-weight:600;color:#1e40af;margin-bottom:2px;">Click + Compare on 2–4 plans</div>
+            <div style="font-size:0.78rem;color:#3b82f6;line-height:1.5;">The tool <strong>automatically fetches the official EFL</strong> for each plan and loads precise rates into the compare card. No copy/paste needed — just click and wait for the green checkmark.</div>
           </div>
         </div>
         <div style="display:flex;gap:10px;align-items:flex-start;">
           <span style="background:#2563eb;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;margin-top:1px;">3</span>
           <div>
-            <div style="font-size:0.82rem;font-weight:600;color:#1e40af;margin-bottom:2px;">Copy the URL from your browser</div>
-            <div style="font-size:0.78rem;color:#3b82f6;line-height:1.5;">When the Facts Sheet opens, <strong>copy the web address</strong> from the top of your browser (it usually ends in .pdf or contains the plan name).</div>
+            <div style="font-size:0.82rem;font-weight:600;color:#1e40af;margin-bottom:2px;">Compare Plans side by side</div>
+            <div style="font-size:0.78rem;color:#3b82f6;line-height:1.5;">Go to <strong>Compare Plans</strong> and click <strong>Compare Plans →</strong> to see a full bill breakdown at every usage level, with the cheapest plan highlighted at each row.</div>
           </div>
         </div>
         <div style="display:flex;gap:10px;align-items:flex-start;">
           <span style="background:#2563eb;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;margin-top:1px;">4</span>
           <div>
-            <div style="font-size:0.82rem;font-weight:600;color:#1e40af;margin-bottom:2px;">Paste it into "Analyze a Plan"</div>
-            <div style="font-size:0.78rem;color:#3b82f6;line-height:1.5;">Go to the <strong>Analyze a Plan</strong> tab, paste the URL into the EFL URL box, and click <strong>⚡ Extract Rates</strong>. The tool reads the official numbers automatically.</div>
+            <div style="font-size:0.82rem;font-weight:600;color:#1e40af;margin-bottom:2px;">Or deep-dive a single plan</div>
+            <div style="font-size:0.78rem;color:#3b82f6;line-height:1.5;">Click <strong>Analyze</strong> on any row for a full breakdown — bill at every usage level, marginal rate, bill credit details, and key takeaways. EFL rates are loaded automatically.</div>
           </div>
         </div>
-      </div>
-      <div style="margin-top:14px;padding-top:12px;border-top:1px solid #bfdbfe;font-size:0.75rem;color:#6b7280;">
-        <strong>Why bother?</strong> The zip code search gives you a quick overview, but the Facts Sheet analysis is more precise — it reads the exact credit rules and fine print directly from the official document, which matters when projecting costs at higher usage levels like 2,800 kWh.
       </div>
     </div>
 
