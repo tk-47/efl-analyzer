@@ -3,21 +3,39 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Texas EFL Analyzer</title>
+<title>Texas Electricity Plan Finder | EFL Analyzer</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; color: #1a1a2e; min-height: 100vh; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a1a2e; min-height: 100vh; }
 
 /* ── Header ── */
-header { background: #1a1a2e; color: white; padding: 16px 32px; display: flex; align-items: center; gap: 12px; }
-header h1 { font-size: 1.15rem; font-weight: 600; flex: 1; }
+header {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+  color: white;
+  padding: 0 32px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.header-inner { max-width: 1100px; margin: 0 auto; width: 100%; display: flex; align-items: center; gap: 14px; }
+.header-logo { font-size: 1.6rem; line-height: 1; }
+.header-brand { flex: 1; }
+.header-brand h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
+.header-brand .tagline { font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-top: 1px; }
 .header-links { display: flex; gap: 10px; align-items: center; }
-.btn-instructions { background: rgba(255,255,255,0.12); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 5px 14px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: background 0.15s; }
+.btn-instructions { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 7px; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: background 0.15s; }
 .btn-instructions:hover { background: rgba(255,255,255,0.2); }
-.tdu-badge { font-size: 0.75rem; background: #2563eb; padding: 2px 8px; border-radius: 4px; }
-  .server-dot { width: 8px; height: 8px; border-radius: 50%; background: #6b7280; display: inline-block; margin-right: 5px; transition: background 0.3s; }
-  .server-dot.online { background: #10b981; }
-  .server-status { font-size: 0.72rem; color: rgba(255,255,255,0.5); display: flex; align-items: center; }
+.tdu-badge { font-size: 0.7rem; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); padding: 3px 9px; border-radius: 20px; font-weight: 600; letter-spacing: 0.04em; }
+.server-dot { width: 7px; height: 7px; border-radius: 50%; background: #4b5563; display: inline-block; margin-right: 5px; transition: background 0.3s; }
+.server-dot.online { background: #10b981; }
+.server-status { font-size: 0.68rem; color: rgba(255,255,255,0.4); display: flex; align-items: center; }
   .extract-row { display: flex; gap: 8px; align-items: stretch; }
   .extract-row input { flex: 1; }
   .btn-extract { background: #2563eb; color: white; border: none; padding: 8px 14px; border-radius: 7px; font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
@@ -34,20 +52,69 @@ header h1 { font-size: 1.15rem; font-weight: 600; flex: 1; }
   .btn-ptc { background: white; color: #2563eb; border: 1px solid #93c5fd; padding: 8px 14px; border-radius: 7px; font-size: 0.82rem; font-weight: 500; cursor: pointer; white-space: nowrap; }
   .btn-ptc:hover { background: #eff6ff; }
 
+/* ── Hero ── */
+.hero {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  padding: 48px 32px 40px;
+  color: white;
+  text-align: center;
+}
+.hero h2 { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 10px; }
+.hero .hero-sub { font-size: 1.05rem; color: rgba(255,255,255,0.75); margin-bottom: 32px; }
+.hero-search { display: flex; gap: 12px; justify-content: center; align-items: flex-end; flex-wrap: wrap; max-width: 620px; margin: 0 auto; }
+.hero-input-group { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.hero-input-group label { font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.85); text-transform: uppercase; letter-spacing: 0.05em; }
+.hero-input { padding: 13px 16px; border-radius: 10px; border: 2px solid transparent; font-size: 1rem; font-weight: 500; background: white; color: #0f172a; min-width: 150px; transition: border 0.15s; }
+.hero-input:focus { outline: none; border-color: #f59e0b; }
+.btn-hero { padding: 13px 32px; background: #f59e0b; color: #0f172a; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+.btn-hero:hover { background: #d97706; }
+.hero .find-status { max-width: 500px; margin: 20px auto 0; }
+
+/* ── Disclaimer bar ── */
+.disclaimer-bar {
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+  padding: 9px 32px;
+  font-size: 0.74rem;
+  color: #78350f;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.55;
+}
+.disclaimer-bar .db-icon { font-size: 0.9rem; flex-shrink: 0; margin-top: 1px; }
+
 /* ── Tabs ── */
-.tabs { background: white; border-bottom: 1px solid #e5e7eb; display: flex; padding: 0 32px; }
-.tab { padding: 14px 20px; font-size: 0.9rem; font-weight: 500; color: #6b7280; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+.tabs { background: white; border-bottom: 1px solid #e5e7eb; display: flex; padding: 0 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.tab { padding: 14px 22px; font-size: 0.875rem; font-weight: 500; color: #6b7280; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
 .tab.active { color: #2563eb; border-bottom-color: #2563eb; font-weight: 600; }
-.tab:hover:not(.active) { color: #374151; }
+.tab:hover:not(.active) { color: #374151; background: #f9fafb; }
 
 /* ── Layout ── */
-.container { max-width: 960px; margin: 0 auto; padding: 28px 24px; }
+.container { max-width: 980px; margin: 0 auto; padding: 28px 24px; }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
+/* ── Footer ── */
+footer {
+  background: #0f172a;
+  color: rgba(255,255,255,0.55);
+  padding: 40px 32px 28px;
+  margin-top: 48px;
+  font-size: 0.78rem;
+  line-height: 1.7;
+}
+.footer-inner { max-width: 980px; margin: 0 auto; }
+.footer-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 40px; margin-bottom: 28px; }
+footer h4 { color: rgba(255,255,255,0.9); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+footer a { color: rgba(255,255,255,0.45); text-decoration: underline; }
+footer a:hover { color: rgba(255,255,255,0.85); }
+.footer-bottom { padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.72rem; color: rgba(255,255,255,0.35); }
+@media (max-width: 640px) { .footer-grid { grid-template-columns: 1fr; gap: 24px; } }
+
 /* ── Cards ── */
-.card { background: white; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 24px; margin-bottom: 20px; }
-.card h2 { font-size: 0.95rem; font-weight: 600; color: #374151; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.card { background: white; border-radius: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.03); padding: 26px; margin-bottom: 22px; }
+.card h2 { font-size: 0.95rem; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
 .step-num { background: #2563eb; color: white; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; flex-shrink: 0; }
 
 /* ── Form ── */
@@ -73,9 +140,10 @@ input:focus, select:focus { outline: none; border-color: #2563eb; background: wh
 .rate-box .rb-unit { font-size: 0.72rem; color: #64748b; margin-top: 2px; }
 
 /* ── Buttons ── */
-.btn-primary { background: #2563eb; color: white; padding: 10px 26px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
-.btn-primary:hover { background: #1d4ed8; }
-.btn-secondary { background: #f3f4f6; color: #374151; padding: 10px 18px; border: none; border-radius: 8px; font-size: 0.875rem; cursor: pointer; margin-left: 8px; }
+.btn-primary { background: #2563eb; color: white; padding: 11px 28px; border: none; border-radius: 9px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.15s; box-shadow: 0 2px 8px rgba(37,99,235,0.3); }
+.btn-primary:hover { background: #1d4ed8; box-shadow: 0 4px 12px rgba(37,99,235,0.4); }
+.btn-secondary { background: #f1f5f9; color: #475569; padding: 11px 18px; border: none; border-radius: 9px; font-size: 0.875rem; font-weight: 500; cursor: pointer; margin-left: 8px; transition: background 0.15s; }
+.btn-secondary:hover { background: #e2e8f0; }
 .btn-add { background: white; color: #2563eb; border: 1px dashed #93c5fd; padding: 9px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.15s; width: 100%; }
 .btn-add:hover { background: #eff6ff; border-color: #2563eb; }
 .btn-remove { background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 2px 6px; border-radius: 4px; }
@@ -154,9 +222,9 @@ tr.hl-row td { font-weight: 600; color: #1d4ed8; }
 .filter-bar label { font-size: 0.75rem; font-weight: 500; color: #6b7280; margin: 0; }
 .filter-bar input, .filter-bar select { padding: 7px 10px; border: 1px solid #e5e7eb; border-radius: 7px; font-size: 0.82rem; background: #fafafa; min-width: 0; }
 .filter-bar input:focus, .filter-bar select:focus { outline: none; border-color: #2563eb; background: white; }
-.find-status { margin-top: 10px; font-size: 0.8rem; padding: 8px 12px; border-radius: 6px; display: none; }
-.find-status.loading { background: #eff6ff; color: #1d4ed8; display: block; }
-.find-status.success { background: #d1fae5; color: #065f46; display: block; }
+.find-status { margin-top: 10px; font-size: 0.82rem; padding: 10px 14px; border-radius: 8px; display: none; }
+.find-status.loading { background: rgba(255,255,255,0.15); color: white; display: block; border: 1px solid rgba(255,255,255,0.25); }
+.find-status.success { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.9); display: block; border: 1px solid rgba(255,255,255,0.2); }
 .find-status.error   { background: #fee2e2; color: #991b1b; display: block; }
 .find-table-wrap { overflow-x: auto; }
 .find-table th { cursor: pointer; user-select: none; white-space: nowrap; }
@@ -178,8 +246,12 @@ tr.hl-row td { font-weight: 600; color: #1d4ed8; }
   .row2 { grid-template-columns: 1fr; }
   .summary-strip { grid-template-columns: 1fr 1fr; }
   .tabs { padding: 0 16px; }
-  header { padding: 14px 16px; }
+  header { padding: 0 16px; }
   .container { padding: 20px 14px; }
+  .hero { padding: 32px 16px 28px; }
+  .hero h2 { font-size: 1.5rem; }
+  .hero .hero-sub { font-size: 0.9rem; }
+  .disclaimer-bar { padding: 8px 16px; }
 }
 </style>
 </head>
@@ -187,19 +259,31 @@ tr.hl-row td { font-weight: 600; color: #1d4ed8; }
 
 <!-- ══════════════ HEADER ══════════════ -->
 <header>
-  <h1>⚡ Texas EFL Analyzer</h1>
-  <div class="header-links">
-    <span class="server-status"><span class="server-dot" id="serverDot"></span><span id="serverLabel">checking…</span></span>
-    <button class="btn-instructions" onclick="openModal()">? How to Use</button>
-    <span class="tdu-badge">Deregulated TX</span>
+  <div class="header-inner">
+    <div class="header-logo">⚡</div>
+    <div class="header-brand">
+      <h1>Texas Electricity Plan Finder</h1>
+      <div class="tagline">Real rate analysis for deregulated Texas markets</div>
+    </div>
+    <div class="header-links">
+      <span class="server-status"><span class="server-dot" id="serverDot"></span><span id="serverLabel">checking…</span></span>
+      <button class="btn-instructions" onclick="openModal()">How to Use</button>
+      <span class="tdu-badge">Deregulated TX</span>
+    </div>
   </div>
 </header>
 
+<!-- ══════════════ DISCLAIMER BAR ══════════════ -->
+<div class="disclaimer-bar">
+  <span class="db-icon">ℹ️</span>
+  <span><strong>Data source:</strong> Plan data is provided by the <strong>Power to Choose</strong> program (api.powertochoose.org), operated by the <strong>Public Utility Commission of Texas (PUC)</strong>. EFL documents are published by individual Retail Electricity Providers (REPs). This tool is provided for informational purposes only. No claim is made as to the accuracy or completeness of the data. Rates and plan availability change frequently. <strong>Use of this tool is at your own risk and discretion.</strong> Always verify rates directly with the provider before enrolling.</span>
+</div>
+
 <!-- ══════════════ TABS ══════════════ -->
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('single')">Analyze a Plan</div>
+  <div class="tab active" onclick="switchTab('find')">Find Plans by Zip</div>
   <div class="tab" onclick="switchTab('compare')">Compare Plans</div>
-  <div class="tab" onclick="switchTab('find')">Find Plans by Zip</div>
+  <div class="tab" onclick="switchTab('single')">Analyze a Plan</div>
 </div>
 
 <!-- ══════════════ INSTRUCTIONS MODAL ══════════════ -->
@@ -277,25 +361,30 @@ AVERAGE MONTHLY USE &nbsp;&nbsp; AVERAGE PRICE<br>
 </div>
 
 <!-- ══════════════ FIND PLANS TAB ══════════════ -->
-<div class="tab-panel" id="tab-find">
+<div class="tab-panel active" id="tab-find">
+
+  <!-- Hero search -->
+  <div class="hero">
+    <h2>Find Texas Electricity Plans</h2>
+    <p class="hero-sub">Search all available plans in your area. Sort by rate, filter by type, and pick your best deal.</p>
+    <div class="hero-search">
+      <div class="hero-input-group">
+        <label>Zip Code</label>
+        <input type="number" id="find-zip" placeholder="76132" maxlength="5" class="hero-input" style="width:150px;" onkeydown="if(event.key==='Enter') findPlans()">
+      </div>
+      <div class="hero-input-group">
+        <label>Monthly Usage (kWh)</label>
+        <input type="number" id="find-usage" placeholder="2800" min="100" max="10000" step="100" value="2000" class="hero-input" style="width:180px;" oninput="renderFindTable()">
+      </div>
+      <button class="btn-hero" onclick="findPlans()">Search Plans</button>
+    </div>
+    <div class="find-status" id="find-status"></div>
+  </div>
+
 <div class="container">
 
-  <div class="card">
-    <h2>Find Plans by Zip Code</h2>
-    <p class="hint" style="margin-bottom:12px;">Enter your Texas zip code to pull all available plans from <a href="https://www.powertochoose.org" target="_blank" style="color:#2563eb;">Power to Choose</a>. Click Analyze to deep-dive a plan, or + Compare to add it to the comparison tab.</p>
-
-    <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
-      <div style="flex:0 0 140px;">
-        <label>Zip Code</label>
-        <input type="number" id="find-zip" placeholder="76132" maxlength="5" style="width:100%;padding:8px 11px;border:1px solid #e5e7eb;border-radius:7px;font-size:0.875rem;" onkeydown="if(event.key==='Enter') findPlans()">
-      </div>
-      <div style="flex:0 0 160px;">
-        <label>Your Monthly Usage (kWh)</label>
-        <input type="number" id="find-usage" placeholder="2800" min="100" max="10000" step="100" value="2000" style="width:100%;padding:8px 11px;border:1px solid #e5e7eb;border-radius:7px;font-size:0.875rem;" oninput="renderFindTable()">
-      </div>
-      <button class="btn-primary" onclick="findPlans()">Search Plans</button>
-    </div>
-
+  <div class="card" style="display:none;" id="find-filter-card">
+    <h2>Filter Results</h2>
     <div class="filter-bar" id="find-filters" style="display:none;">
       <div>
         <label>Plan Type</label>
@@ -333,9 +422,7 @@ AVERAGE MONTHLY USE &nbsp;&nbsp; AVERAGE PRICE<br>
         <button class="btn-secondary" onclick="clearFindFilters()">Clear Filters</button>
       </div>
     </div>
-
-    <div class="find-status" id="find-status"></div>
-  </div>
+  </div><!-- /find-filter-card -->
 
   <div id="find-results-section">
 
@@ -405,7 +492,7 @@ AVERAGE MONTHLY USE &nbsp;&nbsp; AVERAGE PRICE<br>
 </div><!-- /tab-find -->
 
 <!-- ══════════════ SINGLE PLAN TAB ══════════════ -->
-<div class="tab-panel active" id="tab-single">
+<div class="tab-panel" id="tab-single">
 <div class="container">
 
   <!-- Step 1: Plan Info -->
@@ -645,22 +732,21 @@ AVERAGE MONTHLY USE &nbsp;&nbsp; AVERAGE PRICE<br>
 // ══════════════════════════════════════════
 // SERVER & AUTO-EXTRACT
 // ══════════════════════════════════════════
-const API = "http://localhost:3456";
+const API = "";  // relative path — works for both local dev (via server.ts) and Cloudflare Pages
 let serverOnline = false;
 
 async function checkServer() {
   try {
-    const r = await fetch(`${API}/api/ptc?zip=00000`, { signal: AbortSignal.timeout(1500) });
-    serverOnline = true;
+    const r = await fetch(`/api/ptc?zip=00000`, { signal: AbortSignal.timeout(3000) });
+    serverOnline = r.ok;
   } catch {
     serverOnline = false;
   }
   const dot   = document.getElementById("serverDot");
   const label = document.getElementById("serverLabel");
   dot.classList.toggle("online", serverOnline);
-  label.textContent = serverOnline ? "server online" : "server offline";
+  label.textContent = serverOnline ? "online" : "offline";
   document.getElementById("btnExtract").disabled = !serverOnline;
-  document.getElementById("btnExtract").title = serverOnline ? "" : "Start the server: bun run server.ts";
 }
 
 function setExtractStatus(type, msg) {
@@ -678,7 +764,7 @@ async function extractFromUrl() {
   document.getElementById("btnExtract").disabled = true;
 
   try {
-    const res  = await fetch(`${API}/api/extract?url=${encodeURIComponent(url)}`);
+    const res  = await fetch(`/api/extract?url=${encodeURIComponent(url)}`);
     const data = await res.json();
 
     if (data.success && data.rates) {
@@ -703,7 +789,7 @@ async function ptcLookup() {
   setExtractStatus("loading", "⏳ Querying Power to Choose for zip " + zip + "…");
 
   try {
-    const res  = await fetch(`${API}/api/ptc?zip=${zip}&url=${encodeURIComponent(url)}`);
+    const res  = await fetch(`/api/ptc?zip=${zip}&url=${encodeURIComponent(url)}`);
     const data = await res.json();
 
     if (data.matched) {
@@ -776,7 +862,7 @@ const TDU_RATES = {
 // TABS & MODAL
 // ══════════════════════════════════════════
 function switchTab(name) {
-  const tabNames = ['single','compare','find'];
+  const tabNames = ['find','compare','single'];
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', tabNames[i] === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
@@ -1078,7 +1164,7 @@ function initDropZone(card, idx) {
     if (!url || !serverOnline) return;
     setZoneState('loading', 'Extracting…');
     try {
-      const res = await fetch(`${API}/api/extract?url=${encodeURIComponent(url)}`);
+      const res = await fetch(`/api/extract?url=${encodeURIComponent(url)}`);
       const data = await res.json();
       if (data.success) {
         const r = data.rates, m = data.meta || {};
@@ -1320,22 +1406,23 @@ function setFindStatus(type, msg) {
 async function findPlans() {
   const zip = document.getElementById('find-zip').value.trim();
   if (!zip || zip.length < 5) { alert('Enter a valid 5-digit Texas zip code.'); return; }
-  if (!serverOnline) { alert('Server is offline. Run: bun run server.ts'); return; }
+  if (!serverOnline) { setFindStatus('error', 'Service unavailable. Please try again in a moment.'); return; }
 
-  setFindStatus('loading', '⏳ Searching plans in zip ' + zip + '…');
+  setFindStatus('loading', 'Searching plans in zip ' + zip + '…');
   document.getElementById('find-results-section').style.display = 'none';
 
   try {
-    const res  = await fetch(`${API}/api/ptc?zip=${zip}`);
+    const res  = await fetch(`/api/ptc?zip=${zip}`);
     const data = await res.json();
-    if (!data.success) { setFindStatus('error', '❌ ' + (data.error || 'Failed')); return; }
+    if (!data.success) { setFindStatus('error', data.error || 'Failed to load plans. Please try again.'); return; }
 
     findResults = data.all;
-    setFindStatus('success', `✅ Found ${findResults.length} plans in zip ${zip}.`);
+    setFindStatus('success', `Found ${findResults.length} plans in zip ${zip}. Sort by the last column (★) to see the best rate at your usage.`);
     document.getElementById('find-filters').style.display = 'flex';
+    document.getElementById('find-filter-card').style.display = 'block';
     renderFindTable();
   } catch(e) {
-    setFindStatus('error', '❌ ' + e.message);
+    setFindStatus('error', 'Could not load plans: ' + e.message);
   }
 }
 
@@ -1503,5 +1590,29 @@ addPlanCard();
 checkServer();
 setInterval(checkServer, 15000); // re-check every 15s
 </script>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div>
+        <h4>Disclaimer</h4>
+        <p>This tool is provided for <strong style="color:rgba(255,255,255,0.7)">informational purposes only</strong>. No claim is made as to the accuracy, completeness, or timeliness of the data presented. Electricity rates and plan availability change frequently. Rate projections at usage levels outside 500/1,000/2,000 kWh are estimates based on mathematical back-calculation from published EFL averages and may not reflect actual billed amounts. Always verify rates directly with the retail electricity provider before enrolling in any plan. <strong style="color:rgba(255,255,255,0.7)">Use of this tool is at your own risk and discretion.</strong></p>
+      </div>
+      <div>
+        <h4>Data Sources</h4>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:6px;">
+          <li><strong style="color:rgba(255,255,255,0.7)">Plan Data:</strong> Power to Choose (api.powertochoose.org), a program of the Public Utility Commission of Texas (PUCT)</li>
+          <li><strong style="color:rgba(255,255,255,0.7)">EFL Documents:</strong> Individual Retail Electricity Providers (REPs) licensed by the PUCT</li>
+          <li><strong style="color:rgba(255,255,255,0.7)">TDU Rates:</strong> Oncor, CenterPoint, AEP Texas, and TNMP published tariffs (as of March 2026)</li>
+          <li><a href="https://www.powertochoose.org" target="_blank">PowerToChoose.org</a> &nbsp;|&nbsp; <a href="https://www.puc.texas.gov" target="_blank">puc.texas.gov</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      Texas Electricity Plan Finder &mdash; Not affiliated with the Public Utility Commission of Texas or any retail electricity provider. This is an independent analysis tool.
+    </div>
+  </div>
+</footer>
 </body>
 </html>
