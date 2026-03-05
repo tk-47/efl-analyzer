@@ -146,6 +146,31 @@ tr.hl-row td { font-weight: 600; color: #1d4ed8; }
 /* ── Results hidden state ── */
 #single-results { display: none; }
 #compare-results { display: none; }
+#find-results-section { display: none; }
+
+/* ── Find Plans tab ── */
+.filter-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-top: 14px; }
+.filter-bar > div { display: flex; flex-direction: column; gap: 4px; }
+.filter-bar label { font-size: 0.75rem; font-weight: 500; color: #6b7280; margin: 0; }
+.filter-bar input, .filter-bar select { padding: 7px 10px; border: 1px solid #e5e7eb; border-radius: 7px; font-size: 0.82rem; background: #fafafa; min-width: 0; }
+.filter-bar input:focus, .filter-bar select:focus { outline: none; border-color: #2563eb; background: white; }
+.find-status { margin-top: 10px; font-size: 0.8rem; padding: 8px 12px; border-radius: 6px; display: none; }
+.find-status.loading { background: #eff6ff; color: #1d4ed8; display: block; }
+.find-status.success { background: #d1fae5; color: #065f46; display: block; }
+.find-status.error   { background: #fee2e2; color: #991b1b; display: block; }
+.find-table-wrap { overflow-x: auto; }
+.find-table th { cursor: pointer; user-select: none; white-space: nowrap; }
+.find-table th:hover { background: #eef2ff; }
+.find-table th.sort-asc::after  { content: ' ↑'; }
+.find-table th.sort-desc::after { content: ' ↓'; }
+.find-actions { display: flex; gap: 5px; }
+.btn-find-analyze { padding: 4px 10px; background: #2563eb; color: white; border: none; border-radius: 5px; font-size: 0.75rem; cursor: pointer; white-space: nowrap; }
+.btn-find-analyze:hover { background: #1d4ed8; }
+.btn-find-compare { padding: 4px 10px; background: white; color: #7c3aed; border: 1px solid #c4b5fd; border-radius: 5px; font-size: 0.75rem; cursor: pointer; white-space: nowrap; }
+.btn-find-compare:hover { background: #f5f3ff; }
+.btn-find-efl { padding: 4px 10px; background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 0.75rem; cursor: pointer; text-decoration: none; white-space: nowrap; }
+.btn-find-efl:hover { background: #e5e7eb; }
+.find-count { font-size: 0.78rem; color: #6b7280; margin-bottom: 10px; }
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
@@ -174,6 +199,7 @@ tr.hl-row td { font-weight: 600; color: #1d4ed8; }
 <div class="tabs">
   <div class="tab active" onclick="switchTab('single')">Analyze a Plan</div>
   <div class="tab" onclick="switchTab('compare')">Compare Plans</div>
+  <div class="tab" onclick="switchTab('find')">Find Plans by Zip</div>
 </div>
 
 <!-- ══════════════ INSTRUCTIONS MODAL ══════════════ -->
@@ -222,6 +248,99 @@ AVERAGE MONTHLY USE &nbsp;&nbsp; AVERAGE PRICE<br>
     <p>Selecting your TDU splits the total bill into energy vs. delivery components so you can see exactly where your money goes. Oncor rates are pre-loaded and current as of 3/3/2026.</p>
   </div>
 </div>
+
+<!-- ══════════════ FIND PLANS TAB ══════════════ -->
+<div class="tab-panel" id="tab-find">
+<div class="container">
+
+  <div class="card">
+    <h2>Find Plans by Zip Code</h2>
+    <p class="hint" style="margin-bottom:12px;">Enter your Texas zip code to pull all available plans from <a href="https://www.powertochoose.org" target="_blank" style="color:#2563eb;">Power to Choose</a>. Click Analyze to deep-dive a plan, or + Compare to add it to the comparison tab.</p>
+
+    <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+      <div style="flex:0 0 140px;">
+        <label>Zip Code</label>
+        <input type="number" id="find-zip" placeholder="76132" maxlength="5" style="width:100%;padding:8px 11px;border:1px solid #e5e7eb;border-radius:7px;font-size:0.875rem;" onkeydown="if(event.key==='Enter') findPlans()">
+      </div>
+      <div style="flex:0 0 160px;">
+        <label>Your Monthly Usage (kWh)</label>
+        <input type="number" id="find-usage" placeholder="2800" min="100" max="10000" step="100" value="2000" style="width:100%;padding:8px 11px;border:1px solid #e5e7eb;border-radius:7px;font-size:0.875rem;" oninput="renderFindTable()">
+      </div>
+      <button class="btn-primary" onclick="findPlans()">Search Plans</button>
+    </div>
+
+    <div class="filter-bar" id="find-filters" style="display:none;">
+      <div>
+        <label>Plan Type</label>
+        <select id="find-filter-type" onchange="renderFindTable()">
+          <option value="">All</option>
+          <option value="fixed">Fixed</option>
+          <option value="variable">Variable</option>
+        </select>
+      </div>
+      <div>
+        <label>Term</label>
+        <select id="find-filter-term" onchange="renderFindTable()">
+          <option value="">Any</option>
+          <option value="0">Month-to-month</option>
+          <option value="6">6 months</option>
+          <option value="12">12 months</option>
+          <option value="24">24 months</option>
+          <option value="36">36 months</option>
+        </select>
+      </div>
+      <div>
+        <label>Renewable</label>
+        <select id="find-filter-renew" onchange="renderFindTable()">
+          <option value="">Any</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+      <div>
+        <label id="find-maxrate-label">Max Rate @2000 kWh (¢)</label>
+        <input type="number" id="find-filter-maxrate" placeholder="e.g. 12" step="0.1" min="0" style="width:130px;" oninput="renderFindTable()">
+      </div>
+      <div>
+        <label>Provider contains</label>
+        <input type="text" id="find-filter-provider" placeholder="e.g. Gexa" style="width:140px;" oninput="renderFindTable()">
+      </div>
+      <div style="align-self:flex-end;">
+        <button class="btn-secondary" onclick="clearFindFilters()">Clear Filters</button>
+      </div>
+    </div>
+
+    <div class="find-status" id="find-status"></div>
+  </div>
+
+  <div id="find-results-section">
+    <div class="card">
+      <div class="find-count" id="find-count"></div>
+      <div class="find-table-wrap">
+        <table class="find-table">
+          <thead>
+            <tr>
+              <th onclick="sortFind('provider')">Provider</th>
+              <th onclick="sortFind('planName')">Plan Name</th>
+              <th onclick="sortFind('planType')">Type</th>
+              <th onclick="sortFind('term')">Term</th>
+              <th>Renew</th>
+              <th onclick="sortFind('r500')">@500¢</th>
+              <th onclick="sortFind('r1000')">@1000¢</th>
+              <th onclick="sortFind('r2000')">@2000¢</th>
+              <th onclick="sortFind('rUsage')" id="find-th-usage">@2000¢ ★</th>
+              <th onclick="sortFind('etf')">ETF</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="find-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+</div><!-- /tab-find -->
 
 <!-- ══════════════ SINGLE PLAN TAB ══════════════ -->
 <div class="tab-panel active" id="tab-single">
@@ -595,7 +714,8 @@ const TDU_RATES = {
 // TABS & MODAL
 // ══════════════════════════════════════════
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['single','compare'][i] === name));
+  const tabNames = ['single','compare','find'];
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', tabNames[i] === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
 }
@@ -1108,6 +1228,191 @@ function resetCompare() {
   // Re-add 2 default cards
   addPlanCard();
   addPlanCard();
+}
+
+// ══════════════════════════════════════════
+// FIND PLANS
+// ══════════════════════════════════════════
+let findResults = [];
+let findSort = { col: 'rUsage', dir: 1 };
+
+function planRateAt(p, usage) {
+  if (p.r500 == null || p.r1000 == null || p.r2000 == null) return null;
+  const comp = calcComponents(p.r500, p.r1000, p.r2000);
+  // Assume bill credit threshold = 1000 kWh when a credit is detected
+  const threshold = comp.credit > 2 ? 1000 : 0;
+  const bill = billAt(usage, comp, threshold);
+  return (bill / usage) * 100; // ¢/kWh
+}
+
+function getFindUsage() {
+  return parseInt(document.getElementById('find-usage').value) || 2000;
+}
+
+function setFindStatus(type, msg) {
+  const el = document.getElementById('find-status');
+  el.className = 'find-status ' + type;
+  el.textContent = msg;
+}
+
+async function findPlans() {
+  const zip = document.getElementById('find-zip').value.trim();
+  if (!zip || zip.length < 5) { alert('Enter a valid 5-digit Texas zip code.'); return; }
+  if (!serverOnline) { alert('Server is offline. Run: bun run server.ts'); return; }
+
+  setFindStatus('loading', '⏳ Searching plans in zip ' + zip + '…');
+  document.getElementById('find-results-section').style.display = 'none';
+
+  try {
+    const res  = await fetch(`${API}/api/ptc?zip=${zip}`);
+    const data = await res.json();
+    if (!data.success) { setFindStatus('error', '❌ ' + (data.error || 'Failed')); return; }
+
+    findResults = data.all;
+    setFindStatus('success', `✅ Found ${findResults.length} plans in zip ${zip}.`);
+    document.getElementById('find-filters').style.display = 'flex';
+    renderFindTable();
+  } catch(e) {
+    setFindStatus('error', '❌ ' + e.message);
+  }
+}
+
+function getFilteredPlans() {
+  const typeFilter  = document.getElementById('find-filter-type').value;
+  const termFilter  = document.getElementById('find-filter-term').value;
+  const renewFilter = document.getElementById('find-filter-renew').value;
+  const maxRate     = parseFloat(document.getElementById('find-filter-maxrate').value);
+  const providerQ   = document.getElementById('find-filter-provider').value.toLowerCase();
+  const usage       = getFindUsage();
+
+  return findResults.filter(p => {
+    if (typeFilter && p.planType !== typeFilter) return false;
+    if (termFilter !== '' && String(p.term ?? 0) !== termFilter) return false;
+    if (renewFilter === 'yes' && !p.renewable) return false;
+    if (renewFilter === 'no' && p.renewable) return false;
+    if (!isNaN(maxRate)) {
+      const rate = planRateAt(p, usage);
+      if (rate != null && rate > maxRate) return false;
+    }
+    if (providerQ && !(p.provider || '').toLowerCase().includes(providerQ)) return false;
+    return true;
+  });
+}
+
+function renderFindTable() {
+  const usage = getFindUsage();
+
+  // Update dynamic labels
+  const usageLabel = usage.toLocaleString() + ' kWh';
+  document.getElementById('find-th-usage').textContent = `@${usageLabel} ★`;
+  document.getElementById('find-maxrate-label').textContent = `Max Rate @${usageLabel} (¢)`;
+
+  // Augment each plan with computed rUsage for sorting
+  const plans = getFilteredPlans().map(p => ({
+    ...p,
+    rUsage: planRateAt(p, usage),
+  }));
+
+  // Sort
+  plans.sort((a, b) => {
+    const av = a[findSort.col] ?? (findSort.dir === 1 ? Infinity : -Infinity);
+    const bv = b[findSort.col] ?? (findSort.dir === 1 ? Infinity : -Infinity);
+    if (typeof av === 'string') return findSort.dir * av.localeCompare(bv);
+    return findSort.dir * (av - bv);
+  });
+
+  // Update sort indicators
+  document.querySelectorAll('.find-table th').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    const col = th.getAttribute('onclick')?.match(/sortFind\('(\w+)'\)/)?.[1];
+    if (col === findSort.col) th.classList.add(findSort.dir === 1 ? 'sort-asc' : 'sort-desc');
+  });
+
+  const tbody = document.getElementById('find-tbody');
+  tbody.innerHTML = '';
+
+  if (plans.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:#9ca3af;padding:24px;">No plans match the current filters.</td></tr>`;
+  } else {
+    // Find best rUsage for highlighting
+    const bestRate = Math.min(...plans.filter(p => p.rUsage != null).map(p => p.rUsage));
+
+    plans.forEach(p => {
+      const tr = document.createElement('tr');
+      const termLabel  = !p.term || p.term === 0 ? 'MTM' : p.term + ' mo';
+      const rUsageStr  = p.rUsage != null ? p.rUsage.toFixed(2) + '¢' : '—';
+      const isBest     = p.rUsage != null && p.rUsage <= bestRate + 0.01;
+      const usageCell  = isBest
+        ? `<td><strong style="color:#065f46;background:#d1fae5;padding:2px 6px;border-radius:4px;">${rUsageStr}</strong></td>`
+        : `<td style="font-size:0.85rem;">${rUsageStr}</td>`;
+
+      tr.innerHTML = `
+        <td style="font-size:0.82rem;">${p.provider || '—'}</td>
+        <td style="font-size:0.82rem;">${p.planName || '—'}${p.newCustomer ? ' <span class="badge badge-yellow">New</span>' : ''}</td>
+        <td>${p.planType === 'fixed' ? '<span class="badge badge-green">Fixed</span>' : '<span class="badge badge-red">Variable</span>'}</td>
+        <td style="font-size:0.82rem;">${termLabel}</td>
+        <td style="text-align:center;">${p.renewable ? '♻️' : '—'}</td>
+        <td style="font-size:0.85rem;color:#94a3b8;">${p.r500 != null ? p.r500.toFixed(1) : '—'}</td>
+        <td style="font-size:0.85rem;color:#94a3b8;">${p.r1000 != null ? p.r1000.toFixed(1) : '—'}</td>
+        <td style="font-size:0.85rem;color:#94a3b8;">${p.r2000 != null ? p.r2000.toFixed(1) : '—'}</td>
+        ${usageCell}
+        <td style="font-size:0.82rem;">${p.etf ? '$' + p.etf : '—'}</td>
+        <td><div class="find-actions">
+          <button class="btn-find-analyze">Analyze</button>
+          <button class="btn-find-compare">+ Compare</button>
+          ${p.eflUrl ? `<a class="btn-find-efl" href="${p.eflUrl}" target="_blank">EFL ↗</a>` : ''}
+        </div></td>`;
+
+      tr.querySelector('.btn-find-analyze').addEventListener('click', () => analyzePlan(p));
+      tr.querySelector('.btn-find-compare').addEventListener('click', () => addToCompare(p));
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.getElementById('find-count').textContent =
+    `Showing ${plans.length} of ${findResults.length} plans`;
+  document.getElementById('find-results-section').style.display = 'block';
+}
+
+function sortFind(col) {
+  if (findSort.col === col) findSort.dir *= -1;
+  else { findSort.col = col; findSort.dir = 1; }
+  renderFindTable();
+}
+
+function clearFindFilters() {
+  document.getElementById('find-filter-type').value     = '';
+  document.getElementById('find-filter-term').value     = '';
+  document.getElementById('find-filter-renew').value    = '';
+  document.getElementById('find-filter-maxrate').value  = '';
+  document.getElementById('find-filter-provider').value = '';
+  renderFindTable();
+}
+
+function analyzePlan(p) {
+  switchTab('single');
+  document.getElementById('providerName').value = p.provider  || '';
+  document.getElementById('planName').value     = p.planName  || '';
+  document.getElementById('planType').value     = p.planType  || 'fixed';
+  document.getElementById('rate500').value      = p.r500  != null ? p.r500  : '';
+  document.getElementById('rate1000').value     = p.r1000 != null ? p.r1000 : '';
+  document.getElementById('rate2000').value     = p.r2000 != null ? p.r2000 : '';
+  if (p.etf)  document.getElementById('etfAmount').value = p.etf;
+  if (p.term) {
+    const sel = document.getElementById('contractLength');
+    for (const opt of sel.options) { if (opt.value === String(p.term)) { sel.value = p.term; break; } }
+  }
+  if (p.eflUrl) document.getElementById('eflUrl').value = p.eflUrl;
+  // Carry over the usage from the find tab
+  const usage = getFindUsage();
+  if (usage) document.getElementById('myUsage').value = usage;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function addToCompare(p) {
+  if (planCardCount >= MAX_PLANS) { alert('Maximum 4 plans in Compare. Remove one first.'); return; }
+  switchTab('compare');
+  addPlanCard({ name: p.provider + ' — ' + p.planName, r500: p.r500, r1000: p.r1000, r2000: p.r2000, etf: p.etf });
 }
 
 // ── Init ──

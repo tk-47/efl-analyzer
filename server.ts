@@ -300,15 +300,17 @@ const srv = Bun.serve({
         }
 
         const mapPlan = (p: any) => ({
-          provider: p.company_name,
-          planName: p.product_name,
-          planType: (p.rate_type_name ?? "").toLowerCase().includes("variable") ? "variable" : "fixed",
-          term:     p.term_value,
-          r500:     p.price_kwh500,
-          r1000:    p.price_kwh1000,
-          r2000:    p.price_kwh2000,
-          etf:      p.cancellation_fee,
-          eflUrl:   p.efl_url,
+          provider:    p.company_name,
+          planName:    p.product_name,
+          planType:    (p.rate_type_name ?? "").toLowerCase().includes("variable") ? "variable" : "fixed",
+          term:        p.term_value,
+          r500:        p.price_kwh500,
+          r1000:       p.price_kwh1000,
+          r2000:       p.price_kwh2000,
+          etf:         p.cancellation_fee,
+          eflUrl:      p.efl_url,
+          renewable:   (p.renewable_energy_id ?? 0) > 0,
+          newCustomer: p.new_customer_only_ind === "Y",
         });
 
         return new Response(JSON.stringify({
