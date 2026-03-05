@@ -109,12 +109,25 @@ async function pdfToText(buffer: Buffer): Promise<string> {
 }
 
 // ── Power to Choose API ────────────────────────────────────────────────────
+// plan_type=0 returns variable plans; plan_type=1 returns fixed plans.
+// Fetch both in parallel and merge, deduplicating by plan_id.
 async function fetchPtc(zip: string): Promise<any[]> {
-  const url = `http://api.powertochoose.org/api/PowerToChoose/plans?zip_code=${zip}&key=&language=en&plan_type=0&renewable=0&term_month=0&page_size=50&page_number=1`;
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`PTC API ${res.status}`);
-  const json: any = await res.json();
-  return json?.data ?? [];
+  const base = `http://api.powertochoose.org/api/PowerToChoose/plans?zip_code=${zip}&key=&language=en&renewable=0&term_month=0&page_size=200`;
+  const [r0, r1] = await Promise.all([
+    fetch(`${base}&plan_type=0&page_number=1`, { headers: { Accept: "application/json" } }),
+    fetch(`${base}&plan_type=1&page_number=1`, { headers: { Accept: "application/json" } }),
+  ]);
+  if (!r0.ok) throw new Error(`PTC API ${r0.status}`);
+  if (!r1.ok) throw new Error(`PTC API ${r1.status}`);
+  const [j0, j1]: any[] = await Promise.all([r0.json(), r1.json()]);
+  const all = [...(j0?.data ?? []), ...(j1?.data ?? [])];
+  // Deduplicate by plan_id
+  const seen = new Set<number>();
+  return all.filter(p => {
+    if (seen.has(p.plan_id)) return false;
+    seen.add(p.plan_id);
+    return true;
+  });
 }
 
 // ── Server ─────────────────────────────────────────────────────────────────
@@ -287,30 +300,37 @@ const srv = Bun.serve({
       try {
         const plans = await fetchPtc(zip);
 
-        // Match by efl_url exact match first
-        let matched = plans.find((p: any) => p.efl_url && eflUrl && p.efl_url === eflUrl);
+        // Match by fact_sheet URL exact match first
+        let matched = plans.find((p: any) => p.fact_sheet && eflUrl && p.fact_sheet === eflUrl);
 
         // Match by plan code in URL (e.g. prodcode=GXAECOSVRPLS12)
         if (!matched && eflUrl) {
           const prod = eflUrl.match(/prodcode=([^&]+)/i);
           if (prod) {
             const code = prod[1].toLowerCase();
-            matched = plans.find((p: any) => (p.efl_url ?? "").toLowerCase().includes(code));
+            matched = plans.find((p: any) => (p.fact_sheet ?? "").toLowerCase().includes(code));
           }
         }
 
+        const parseEtf = (details: string): number => {
+          const m = (details ?? "").match(/Cancellation Fee:\s*\$\s*([\d,]+(?:\.\d+)?)/i);
+          return m ? parseFloat(m[1].replace(/,/g, "")) : 0;
+        };
+
         const mapPlan = (p: any) => ({
           provider:    p.company_name,
-          planName:    p.product_name,
-          planType:    (p.rate_type_name ?? "").toLowerCase().includes("variable") ? "variable" : "fixed",
-          term:        p.term_value,
+          planName:    p.plan_name,
+          planType:    (p.rate_type ?? "").toLowerCase().includes("variable") ? "variable" : "fixed",
           r500:        p.price_kwh500,
           r1000:       p.price_kwh1000,
           r2000:       p.price_kwh2000,
-          etf:         p.cancellation_fee,
-          eflUrl:      p.efl_url,
+          etf:         parseEtf(p.pricing_details),
+          eflUrl:      p.fact_sheet,
           renewable:   (p.renewable_energy_id ?? 0) > 0,
-          newCustomer: p.new_customer_only_ind === "Y",
+          newCustomer: p.new_customer === true,
+          prepaid:     p.prepaid === true,
+          timeOfUse:   p.timeofuse === true,
+          minUsage:    p.minimum_usage === true,
         });
 
         return new Response(JSON.stringify({

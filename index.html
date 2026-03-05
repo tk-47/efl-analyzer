@@ -208,6 +208,33 @@ tr.hl-row td { font-weight: 600; color: #1d4ed8; }
     <button class="close-btn" onclick="closeModal()">✕</button>
     <h2>How to Use This Tool</h2>
 
+    <h3>Recommended Workflow</h3>
+    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:16px;margin-bottom:8px;">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:0.875rem;color:#166534;">
+          <strong style="flex-shrink:0;">Step 1 →</strong>
+          <span>Go to <strong>Find Plans by Zip</strong>. Enter your zip code and your typical monthly kWh usage. Sort by the ★ column to see which plans are cheapest at your usage level. Narrow it down to 2–3 favorites using the filters.</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:0.875rem;color:#166534;">
+          <strong style="flex-shrink:0;">Step 2 →</strong>
+          <span>For each finalist, click <strong>EFL ↗</strong> to open its official Facts Sheet. If the link is missing, visit <a href="https://www.powertochoose.org" target="_blank" style="color:#15803d;font-weight:600;">PowerToChoose.org</a>, search for the plan by name, and click <em>Electricity Facts Label</em> to open it.</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:0.875rem;color:#166534;">
+          <strong style="flex-shrink:0;">Step 3 →</strong>
+          <span>When the Facts Sheet opens in your browser, <strong>copy the web address</strong> from the address bar at the top of the page.</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:0.875rem;color:#166534;">
+          <strong style="flex-shrink:0;">Step 4 →</strong>
+          <span>Go to <strong>Analyze a Plan</strong>, paste the URL into the EFL URL box, and click <strong>⚡ Extract Rates</strong>. The tool reads the official numbers and gives you a precise breakdown at your usage level.</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:0.875rem;color:#166534;">
+          <strong style="flex-shrink:0;">Step 5 →</strong>
+          <span>Repeat for your top 2–3 plans, then use <strong>Compare Plans</strong> to see them side by side.</span>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:0.8rem;color:#6b7280;margin-bottom:16px;">The zip code search is a great starting point, but the Facts Sheet analysis is more precise — it reads the exact bill credit rules directly from the official document, which matters most at higher usage levels.</p>
+
     <h3>What is an EFL?</h3>
     <p>An <strong>Electricity Facts Label (EFL)</strong> is a standardized disclosure document required by the Texas PUC for every electricity plan. Think of it like a nutrition label — it must show you the true all-in price at three specific usage levels.</p>
 
@@ -279,14 +306,11 @@ AVERAGE MONTHLY USE &nbsp;&nbsp; AVERAGE PRICE<br>
         </select>
       </div>
       <div>
-        <label>Term</label>
-        <select id="find-filter-term" onchange="renderFindTable()">
-          <option value="">Any</option>
-          <option value="0">Month-to-month</option>
-          <option value="6">6 months</option>
-          <option value="12">12 months</option>
-          <option value="24">24 months</option>
-          <option value="36">36 months</option>
+        <label>New Customer Only</label>
+        <select id="find-filter-newcust" onchange="renderFindTable()">
+          <option value="">Show All</option>
+          <option value="no">Hide New-Only Plans</option>
+          <option value="yes">New-Only Plans</option>
         </select>
       </div>
       <div>
@@ -314,23 +338,61 @@ AVERAGE MONTHLY USE &nbsp;&nbsp; AVERAGE PRICE<br>
   </div>
 
   <div id="find-results-section">
+
+    <!-- Next Steps guide -->
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+      <div style="font-size:0.9rem;font-weight:700;color:#1e40af;margin-bottom:14px;">📋 How to Use These Results</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <span style="background:#2563eb;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;margin-top:1px;">1</span>
+          <div>
+            <div style="font-size:0.82rem;font-weight:600;color:#1e40af;margin-bottom:2px;">Sort & filter to find your best options</div>
+            <div style="font-size:0.78rem;color:#3b82f6;line-height:1.5;">Click the <strong>★ column header</strong> to sort by cost at your usage. Use filters to narrow by Fixed/Variable, renewable, etc. Pick 2–3 plans you like.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <span style="background:#2563eb;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;margin-top:1px;">2</span>
+          <div>
+            <div style="font-size:0.82rem;font-weight:600;color:#1e40af;margin-bottom:2px;">Get the official Facts Sheet (EFL)</div>
+            <div style="font-size:0.78rem;color:#3b82f6;line-height:1.5;">Click <strong>EFL ↗</strong> on a plan row to open its Facts Sheet. If there's no link, go to <a href="https://www.powertochoose.org" target="_blank" style="color:#1d4ed8;font-weight:600;">PowerToChoose.org</a>, search the plan name, and click <em>Electricity Facts Label</em>.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <span style="background:#2563eb;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;margin-top:1px;">3</span>
+          <div>
+            <div style="font-size:0.82rem;font-weight:600;color:#1e40af;margin-bottom:2px;">Copy the URL from your browser</div>
+            <div style="font-size:0.78rem;color:#3b82f6;line-height:1.5;">When the Facts Sheet opens, <strong>copy the web address</strong> from the top of your browser (it usually ends in .pdf or contains the plan name).</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <span style="background:#2563eb;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;margin-top:1px;">4</span>
+          <div>
+            <div style="font-size:0.82rem;font-weight:600;color:#1e40af;margin-bottom:2px;">Paste it into "Analyze a Plan"</div>
+            <div style="font-size:0.78rem;color:#3b82f6;line-height:1.5;">Go to the <strong>Analyze a Plan</strong> tab, paste the URL into the EFL URL box, and click <strong>⚡ Extract Rates</strong>. The tool reads the official numbers automatically.</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid #bfdbfe;font-size:0.75rem;color:#6b7280;">
+        <strong>Why bother?</strong> The zip code search gives you a quick overview, but the Facts Sheet analysis is more precise — it reads the exact credit rules and fine print directly from the official document, which matters when projecting costs at higher usage levels like 2,800 kWh.
+      </div>
+    </div>
+
     <div class="card">
       <div class="find-count" id="find-count"></div>
       <div class="find-table-wrap">
         <table class="find-table">
           <thead>
             <tr>
+              <th>Actions</th>
               <th onclick="sortFind('provider')">Provider</th>
               <th onclick="sortFind('planName')">Plan Name</th>
               <th onclick="sortFind('planType')">Type</th>
-              <th onclick="sortFind('term')">Term</th>
-              <th>Renew</th>
+              <th>Flags</th>
               <th onclick="sortFind('r500')">@500¢</th>
               <th onclick="sortFind('r1000')">@1000¢</th>
               <th onclick="sortFind('r2000')">@2000¢</th>
               <th onclick="sortFind('rUsage')" id="find-th-usage">@2000¢ ★</th>
               <th onclick="sortFind('etf')">ETF</th>
-              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="find-tbody"></tbody>
@@ -1278,16 +1340,17 @@ async function findPlans() {
 }
 
 function getFilteredPlans() {
-  const typeFilter  = document.getElementById('find-filter-type').value;
-  const termFilter  = document.getElementById('find-filter-term').value;
-  const renewFilter = document.getElementById('find-filter-renew').value;
-  const maxRate     = parseFloat(document.getElementById('find-filter-maxrate').value);
-  const providerQ   = document.getElementById('find-filter-provider').value.toLowerCase();
-  const usage       = getFindUsage();
+  const typeFilter    = document.getElementById('find-filter-type').value;
+  const newCustFilter = document.getElementById('find-filter-newcust').value;
+  const renewFilter   = document.getElementById('find-filter-renew').value;
+  const maxRate       = parseFloat(document.getElementById('find-filter-maxrate').value);
+  const providerQ     = document.getElementById('find-filter-provider').value.toLowerCase();
+  const usage         = getFindUsage();
 
   return findResults.filter(p => {
     if (typeFilter && p.planType !== typeFilter) return false;
-    if (termFilter !== '' && String(p.term ?? 0) !== termFilter) return false;
+    if (newCustFilter === 'no' && p.newCustomer) return false;
+    if (newCustFilter === 'yes' && !p.newCustomer) return false;
     if (renewFilter === 'yes' && !p.renewable) return false;
     if (renewFilter === 'no' && p.renewable) return false;
     if (!isNaN(maxRate)) {
@@ -1332,36 +1395,42 @@ function renderFindTable() {
   tbody.innerHTML = '';
 
   if (plans.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:#9ca3af;padding:24px;">No plans match the current filters.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:24px;">No plans match the current filters.</td></tr>`;
   } else {
     // Find best rUsage for highlighting
     const bestRate = Math.min(...plans.filter(p => p.rUsage != null).map(p => p.rUsage));
 
     plans.forEach(p => {
       const tr = document.createElement('tr');
-      const termLabel  = !p.term || p.term === 0 ? 'MTM' : p.term + ' mo';
       const rUsageStr  = p.rUsage != null ? p.rUsage.toFixed(2) + '¢' : '—';
       const isBest     = p.rUsage != null && p.rUsage <= bestRate + 0.01;
       const usageCell  = isBest
         ? `<td><strong style="color:#065f46;background:#d1fae5;padding:2px 6px;border-radius:4px;">${rUsageStr}</strong></td>`
         : `<td style="font-size:0.85rem;">${rUsageStr}</td>`;
 
+      const flags = [
+        p.renewable    ? '<span class="badge badge-green">♻️ Green</span>'  : '',
+        p.newCustomer  ? '<span class="badge badge-yellow">New only</span>' : '',
+        p.prepaid      ? '<span class="badge" style="background:#e0e7ff;color:#3730a3;">Prepaid</span>' : '',
+        p.timeOfUse    ? '<span class="badge" style="background:#fce7f3;color:#9d174d;">TOU</span>'    : '',
+        p.minUsage     ? '<span class="badge" style="background:#fef3c7;color:#92400e;">Min use</span>': '',
+      ].filter(Boolean).join(' ');
+
       tr.innerHTML = `
-        <td style="font-size:0.82rem;">${p.provider || '—'}</td>
-        <td style="font-size:0.82rem;">${p.planName || '—'}${p.newCustomer ? ' <span class="badge badge-yellow">New</span>' : ''}</td>
-        <td>${p.planType === 'fixed' ? '<span class="badge badge-green">Fixed</span>' : '<span class="badge badge-red">Variable</span>'}</td>
-        <td style="font-size:0.82rem;">${termLabel}</td>
-        <td style="text-align:center;">${p.renewable ? '♻️' : '—'}</td>
-        <td style="font-size:0.85rem;color:#94a3b8;">${p.r500 != null ? p.r500.toFixed(1) : '—'}</td>
-        <td style="font-size:0.85rem;color:#94a3b8;">${p.r1000 != null ? p.r1000.toFixed(1) : '—'}</td>
-        <td style="font-size:0.85rem;color:#94a3b8;">${p.r2000 != null ? p.r2000.toFixed(1) : '—'}</td>
-        ${usageCell}
-        <td style="font-size:0.82rem;">${p.etf ? '$' + p.etf : '—'}</td>
         <td><div class="find-actions">
           <button class="btn-find-analyze">Analyze</button>
           <button class="btn-find-compare">+ Compare</button>
           ${p.eflUrl ? `<a class="btn-find-efl" href="${p.eflUrl}" target="_blank">EFL ↗</a>` : ''}
-        </div></td>`;
+        </div></td>
+        <td style="font-size:0.82rem;">${p.provider || '—'}</td>
+        <td style="font-size:0.82rem;">${p.planName || '—'}</td>
+        <td>${p.planType === 'fixed' ? '<span class="badge badge-green">Fixed</span>' : '<span class="badge badge-red">Variable</span>'}</td>
+        <td style="font-size:0.78rem;white-space:nowrap;">${flags || '—'}</td>
+        <td style="font-size:0.85rem;color:#94a3b8;">${p.r500 != null ? p.r500.toFixed(1) : '—'}</td>
+        <td style="font-size:0.85rem;color:#94a3b8;">${p.r1000 != null ? p.r1000.toFixed(1) : '—'}</td>
+        <td style="font-size:0.85rem;color:#94a3b8;">${p.r2000 != null ? p.r2000.toFixed(1) : '—'}</td>
+        ${usageCell}
+        <td style="font-size:0.82rem;">${p.etf ? '$' + p.etf : '—'}</td>`;
 
       tr.querySelector('.btn-find-analyze').addEventListener('click', () => analyzePlan(p));
       tr.querySelector('.btn-find-compare').addEventListener('click', () => addToCompare(p));
@@ -1382,7 +1451,7 @@ function sortFind(col) {
 
 function clearFindFilters() {
   document.getElementById('find-filter-type').value     = '';
-  document.getElementById('find-filter-term').value     = '';
+  document.getElementById('find-filter-newcust').value  = '';
   document.getElementById('find-filter-renew').value    = '';
   document.getElementById('find-filter-maxrate').value  = '';
   document.getElementById('find-filter-provider').value = '';
@@ -1410,9 +1479,22 @@ function analyzePlan(p) {
 }
 
 function addToCompare(p) {
-  if (planCardCount >= MAX_PLANS) { alert('Maximum 4 plans in Compare. Remove one first.'); return; }
   switchTab('compare');
-  addPlanCard({ name: p.provider + ' — ' + p.planName, r500: p.r500, r1000: p.r1000, r2000: p.r2000, etf: p.etf });
+  const name = p.provider + ' — ' + p.planName;
+  // Fill the first empty card (no r1000 value) before adding a new one
+  const emptyCard = [...document.querySelectorAll('.plan-card')]
+    .find(c => !c.querySelector('.p-r1000').value);
+  if (emptyCard) {
+    emptyCard.querySelector('.plan-title-input').value = name;
+    emptyCard.querySelector('.p-r500').value  = p.r500  ?? '';
+    emptyCard.querySelector('.p-r1000').value = p.r1000 ?? '';
+    emptyCard.querySelector('.p-r2000').value = p.r2000 ?? '';
+    if (p.etf) emptyCard.querySelector('.p-etf').value = p.etf;
+  } else if (planCardCount < MAX_PLANS) {
+    addPlanCard({ name, r500: p.r500, r1000: p.r1000, r2000: p.r2000, etf: p.etf });
+  } else {
+    alert('Maximum 4 plans in Compare. Remove one first.');
+  }
 }
 
 // ── Init ──
