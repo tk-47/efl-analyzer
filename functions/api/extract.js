@@ -8,9 +8,8 @@ const CORS = {
 };
 
 // ── PDF decompression ───────────────────────────────────────────────────────
-async function decompress(bytes) {
-  // PDF FlateDecode = zlib (deflate with 2-byte header + Adler32 checksum)
-  const ds = new DecompressionStream("deflate");
+async function decompressWith(format, bytes) {
+  const ds = new DecompressionStream(format);
   const writer = ds.writable.getWriter();
   const reader = ds.readable.getReader();
   writer.write(bytes);
@@ -26,6 +25,18 @@ async function decompress(bytes) {
   let offset = 0;
   for (const chunk of chunks) { out.set(chunk, offset); offset += chunk.length; }
   return out;
+}
+
+async function decompress(bytes) {
+  // Try zlib first (RFC 1950 — standard PDF FlateDecode)
+  try {
+    return await decompressWith("deflate", bytes);
+  } catch (_) {}
+  // Fallback: raw deflate (RFC 1951 — some PDF generators)
+  try {
+    return await decompressWith("deflate-raw", bytes);
+  } catch (_) {}
+  throw new Error("decompression failed");
 }
 
 // ── Content stream text extraction ─────────────────────────────────────────
@@ -52,6 +63,29 @@ function extractFromContentStream(content) {
   return parts.join(" ");
 }
 
+// ── Dictionary boundary helpers ─────────────────────────────────────────────
+function findStreamDictEnd(raw, streamKw) {
+  // Walk backward from "stream" to find the first ">>" (closes the stream dict)
+  for (let i = streamKw - 1; i >= 1; i--) {
+    if (raw[i] === '>' && raw[i - 1] === '>') return i - 1;
+  }
+  return -1;
+}
+
+function findMatchingDictStart(raw, endPos) {
+  if (endPos < 0) return -1;
+  let depth = 0;
+  for (let i = endPos; i >= 1; i--) {
+    if (raw[i] === '>' && raw[i - 1] === '>') { depth++; i--; }
+    else if (raw[i] === '<' && raw[i - 1] === '<') {
+      depth--;
+      if (depth === 0) return i - 1;
+      i--;
+    }
+  }
+  return -1;
+}
+
 // ── Full PDF text extraction with FlateDecode support ──────────────────────
 async function extractPdfText(arrayBuffer) {
   const raw = new TextDecoder("latin-1").decode(new Uint8Array(arrayBuffer));
@@ -63,18 +97,19 @@ async function extractPdfText(arrayBuffer) {
     const streamKw = raw.indexOf("stream", pos);
     if (streamKw === -1) break;
 
-    // Must be followed immediately by \n or \r\n (not e.g. "streamline")
+    // Must be followed immediately by \n, \r\n, or bare \r (old Mac PDFs)
     const c1 = raw[streamKw + 6];
     const c2 = raw[streamKw + 7];
-    if (c1 !== "\n" && !(c1 === "\r" && c2 === "\n")) {
-      pos = streamKw + 6;
-      continue;
-    }
-    const dataStart = (c1 === "\r") ? streamKw + 8 : streamKw + 7;
+    let dataStart;
+    if (c1 === "\r" && c2 === "\n") dataStart = streamKw + 8;
+    else if (c1 === "\n")           dataStart = streamKw + 7;
+    else if (c1 === "\r")           dataStart = streamKw + 7; // bare CR (old Mac PDF)
+    else { pos = streamKw + 6; continue; }
 
     // Find the dictionary that precedes this stream
-    const dictEnd   = raw.lastIndexOf(">>", streamKw);
-    const dictStart = raw.lastIndexOf("<<", dictEnd);
+    // Walk backward to find the ">>" that closes the stream dict (not an inner dict)
+    const dictEnd   = findStreamDictEnd(raw, streamKw);
+    const dictStart = findMatchingDictStart(raw, dictEnd);
     const dict      = dictStart >= 0 ? raw.slice(dictStart, dictEnd + 2) : "";
 
     // Get declared stream length
@@ -83,7 +118,7 @@ async function extractPdfText(arrayBuffer) {
     const dataEnd      = declaredLen ? dataStart + declaredLen : raw.indexOf("endstream", dataStart);
     if (dataEnd <= dataStart) { pos = dataStart + 1; continue; }
 
-    const isFlate = /\/FlateDecode|\/Fl[\s\/\>]/.test(dict);
+    const isFlate = /\/Filter\s*\[\s*\/FlateDecode|\/(?:Filter\s+)?FlateDecode|\/Fl[\s\/\>\]%]/i.test(dict);
 
     if (isFlate) {
       try {
@@ -112,14 +147,16 @@ async function extractPdfText(arrayBuffer) {
 }
 
 // ── Text sanity check ───────────────────────────────────────────────────────
+// Only ASCII printable + named accented chars; stricter 10% threshold
+const CLEAN_RE = /[^\x20-\x7E\n\r\t¢°©®™áéíóúàèìòùäëïöüâêîôûãõñçÁÉÍÓÚÀÈÌÒÙÄËÏÖÜÂÊÎÔÛÃÕÑÇ]/g;
 function isCleanText(str) {
   if (!str || str.length < 2) return false;
-  const nonPrintable = (str.match(/[^\x20-\x7E\n\r\t¢°©®™\u00A0-\u00FF]/g) || []).length;
-  return nonPrintable / str.length < 0.15;
+  const nonPrintable = (str.match(CLEAN_RE) || []).length;
+  return nonPrintable / str.length < 0.10;
 }
 
 function sanitize(str) {
-  return str.replace(/[^\x20-\x7E\n\r\t¢°©®™]/g, " ").replace(/\s{2,}/g, " ").trim();
+  return str.replace(CLEAN_RE, " ").replace(/\s{2,}/g, " ").trim();
 }
 
 // ── Rate extraction ─────────────────────────────────────────────────────────
@@ -176,24 +213,38 @@ function ratesAreValid(r) {
 
 // ── Meta extraction ─────────────────────────────────────────────────────────
 function extractMeta(text) {
+  // If the overall text is dirty, don't mine it for metadata
+  if (!isCleanText(text)) return {};
+
   const meta = {};
   const flat = text.replace(/\n/g, " ");
 
+  // Helper: sanitize a match and discard if > 30% chars were garbage
+  function cleanMatch(s) {
+    const cleaned = sanitize(s);
+    if (cleaned.length < s.length * 0.70) return null;
+    return cleaned;
+  }
+
   const repLabeled = text.match(/(?:retail electric provider|provider|company)[:\s]+([^\n]{3,60})/i);
   const repPuct    = text.match(/^([^\n•]{3,60})\s*•\s*PUCT\s*Cert/im);
-  if (repLabeled && isCleanText(repLabeled[1]))  meta.provider = sanitize(repLabeled[1]);
-  else if (repPuct && isCleanText(repPuct[1]))  meta.provider = sanitize(repPuct[1]);
+  if (repLabeled && isCleanText(repLabeled[1]))  meta.provider = cleanMatch(repLabeled[1]) ?? undefined;
+  else if (repPuct && isCleanText(repPuct[1]))  meta.provider = cleanMatch(repPuct[1]) ?? undefined;
+  if (meta.provider === undefined) delete meta.provider;
 
   const planLabeled = text.match(/(?:plan name|product name)[:\s]+([^\n]{3,80})/i);
   if (planLabeled && isCleanText(planLabeled[1])) {
-    meta.planName = sanitize(planLabeled[1]);
+    meta.planName = cleanMatch(planLabeled[1]) ?? undefined;
+    if (meta.planName === undefined) delete meta.planName;
   } else {
     const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
     const puct  = lines.findIndex(l => /PUCT\s*Cert/i.test(l));
     if (puct !== -1 && lines[puct + 1] && isCleanText(lines[puct + 1])) {
-      meta.planName = sanitize(lines[puct + 1]);
+      meta.planName = cleanMatch(lines[puct + 1]) ?? undefined;
+      if (meta.planName === undefined) delete meta.planName;
     } else if (lines[1] && lines[1].length > 4 && isCleanText(lines[1])) {
-      meta.planName = sanitize(lines[1]);
+      meta.planName = cleanMatch(lines[1]) ?? undefined;
+      if (meta.planName === undefined) delete meta.planName;
     }
   }
 
