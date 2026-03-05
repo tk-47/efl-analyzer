@@ -1,57 +1,130 @@
 // Cloudflare Pages Function — /api/extract
 // Fetches an EFL URL (HTML or PDF) and extracts the three average rates.
-// No pdftotext or Playwright available in Workers — uses pure-JS PDF text extraction.
+// Handles FlateDecode-compressed PDF streams using the built-in DecompressionStream API.
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Content-Type": "application/json",
 };
 
-// ── PDF text extraction ─────────────────────────────────────────────────────
-// Reads raw PDF bytes and extracts visible text from content streams.
-// Works for standard text-based PDFs (the vast majority of EFL documents).
-function extractTextFromPdfBytes(buffer) {
-  // Decode as latin-1 to preserve all bytes
-  const raw = new TextDecoder("latin-1").decode(buffer);
-  const parts = [];
+// ── PDF decompression ───────────────────────────────────────────────────────
+async function decompress(bytes) {
+  // PDF FlateDecode = zlib (deflate with 2-byte header + Adler32 checksum)
+  const ds = new DecompressionStream("deflate");
+  const writer = ds.writable.getWriter();
+  const reader = ds.readable.getReader();
+  writer.write(bytes);
+  writer.close();
+  const chunks = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+  }
+  const total = chunks.reduce((acc, c) => acc + c.length, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { out.set(chunk, offset); offset += chunk.length; }
+  return out;
+}
 
-  // Strategy 1: extract strings from BT...ET blocks (text blocks)
+// ── Content stream text extraction ─────────────────────────────────────────
+// Extracts visible text from a decompressed PDF content stream.
+function extractFromContentStream(content) {
+  const parts = [];
+  // Pull text from BT...ET blocks
   const btEt = /BT\s([\s\S]*?)ET/g;
-  let btMatch;
-  while ((btMatch = btEt.exec(raw)) !== null) {
-    const block = btMatch[1];
-    // Parenthesized strings: (text)Tj or [(text)]TJ
+  let m;
+  while ((m = btEt.exec(content)) !== null) {
+    const block = m[1];
+    // Parenthesized strings: (text)Tj  [(text1)(text2)]TJ  etc.
     const strRe = /\(([^)\\]*(?:\\.[^)\\]*)*)\)/g;
-    let m;
-    while ((m = strRe.exec(block)) !== null) {
-      const s = m[1]
-        .replace(/\\n/g, "\n")
-        .replace(/\\r/g, "\n")
-        .replace(/\\t/g, " ")
-        .replace(/\\\(/g, "(")
-        .replace(/\\\)/g, ")")
+    let sm;
+    while ((sm = strRe.exec(block)) !== null) {
+      const s = sm[1]
+        .replace(/\\n/g, "\n").replace(/\\r/g, "\n").replace(/\\t/g, " ")
+        .replace(/\\\(/g, "(").replace(/\\\)/g, ")")
         .replace(/\\\\/g, "\\")
         .replace(/\\(\d{3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)));
-      if (s.trim()) parts.push(s);
+      if (s.trim().length > 0) parts.push(s);
     }
   }
-
-  // Strategy 2: if BT/ET extraction is empty, grab all parenthesized strings
-  // (some PDFs use different stream structures)
-  if (parts.length < 5) {
-    const allStrings = /\(([^)\\]{2,}(?:\\.[^)\\]*)*)\)\s*(?:Tj|'|")/g;
-    let m2;
-    while ((m2 = allStrings.exec(raw)) !== null) {
-      const s = m2[1].replace(/\\\(/g, "(").replace(/\\\)/g, ")").replace(/\\\\/g, "\\");
-      if (s.trim()) parts.push(s);
-    }
-  }
-
   return parts.join(" ");
+}
+
+// ── Full PDF text extraction with FlateDecode support ──────────────────────
+async function extractPdfText(arrayBuffer) {
+  const raw = new TextDecoder("latin-1").decode(new Uint8Array(arrayBuffer));
+  const allText = [];
+  let pos = 0;
+
+  while (pos < raw.length) {
+    // Find next stream keyword
+    const streamKw = raw.indexOf("stream", pos);
+    if (streamKw === -1) break;
+
+    // Must be followed immediately by \n or \r\n (not e.g. "streamline")
+    const c1 = raw[streamKw + 6];
+    const c2 = raw[streamKw + 7];
+    if (c1 !== "\n" && !(c1 === "\r" && c2 === "\n")) {
+      pos = streamKw + 6;
+      continue;
+    }
+    const dataStart = (c1 === "\r") ? streamKw + 8 : streamKw + 7;
+
+    // Find the dictionary that precedes this stream
+    const dictEnd   = raw.lastIndexOf(">>", streamKw);
+    const dictStart = raw.lastIndexOf("<<", dictEnd);
+    const dict      = dictStart >= 0 ? raw.slice(dictStart, dictEnd + 2) : "";
+
+    // Get declared stream length
+    const lenMatch     = dict.match(/\/Length\s+(\d+)/);
+    const declaredLen  = lenMatch ? parseInt(lenMatch[1]) : null;
+    const dataEnd      = declaredLen ? dataStart + declaredLen : raw.indexOf("endstream", dataStart);
+    if (dataEnd <= dataStart) { pos = dataStart + 1; continue; }
+
+    const isFlate = /\/FlateDecode|\/Fl[\s\/\>]/.test(dict);
+
+    if (isFlate) {
+      try {
+        // Convert latin-1 string slice back to raw bytes
+        const len   = dataEnd - dataStart;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) bytes[i] = raw.charCodeAt(dataStart + i) & 0xFF;
+        const decompressed = await decompress(bytes);
+        const content      = new TextDecoder("latin-1").decode(decompressed);
+        const text         = extractFromContentStream(content);
+        if (text.trim()) allText.push(text);
+      } catch (_) {
+        // Decompression failed — skip this stream
+      }
+    } else {
+      // Uncompressed stream — try direct parsing
+      const content = raw.slice(dataStart, dataEnd);
+      const text    = extractFromContentStream(content);
+      if (text.trim()) allText.push(text);
+    }
+
+    pos = dataEnd + 9; // skip past "endstream"
+  }
+
+  return allText.join("\n");
+}
+
+// ── Text sanity check ───────────────────────────────────────────────────────
+function isCleanText(str) {
+  if (!str || str.length < 2) return false;
+  const nonPrintable = (str.match(/[^\x20-\x7E\n\r\t¢°©®™\u00A0-\u00FF]/g) || []).length;
+  return nonPrintable / str.length < 0.15;
+}
+
+function sanitize(str) {
+  return str.replace(/[^\x20-\x7E\n\r\t¢°©®™]/g, " ").replace(/\s{2,}/g, " ").trim();
 }
 
 // ── Rate extraction ─────────────────────────────────────────────────────────
 function extractRates(text) {
+  if (!isCleanText(text)) return null;
   const clean = text.replace(/\r/g, "\n").replace(/[ \t]+/g, " ");
   const priceRe = /(\d+\.?\d*)\s*[¢c]/i;
 
@@ -66,7 +139,7 @@ function extractRates(text) {
   // Strategy 1: "Average Price per kWh" row then 3 prices
   const idx = clean.search(/average\s*price\s*per\s*kwh/i);
   if (idx !== -1) {
-    const after = clean.slice(idx, idx + 300);
+    const after  = clean.slice(idx, idx + 300);
     const prices = [...after.matchAll(/(\d+\.?\d*)\s*[¢c]/gi)]
       .map(m => parseFloat(m[1]))
       .filter(v => v >= 1 && v <= 50);
@@ -88,6 +161,19 @@ function extractRates(text) {
   return null;
 }
 
+// ── Validate extracted rates make physical sense ────────────────────────────
+function ratesAreValid(r) {
+  if (!r) return false;
+  // All three rates must be in plausible range
+  if (r.r500 < 1 || r.r500 > 50) return false;
+  if (r.r1000 < 1 || r.r1000 > 50) return false;
+  if (r.r2000 < 1 || r.r2000 > 50) return false;
+  // 500 kWh rate should almost always be >= 1000 kWh rate (fixed cost dilution)
+  // (bill-credit plans may invert this slightly — allow up to 2¢ below)
+  if (r.r500 < r.r1000 - 2) return false;
+  return true;
+}
+
 // ── Meta extraction ─────────────────────────────────────────────────────────
 function extractMeta(text) {
   const meta = {};
@@ -95,17 +181,20 @@ function extractMeta(text) {
 
   const repLabeled = text.match(/(?:retail electric provider|provider|company)[:\s]+([^\n]{3,60})/i);
   const repPuct    = text.match(/^([^\n•]{3,60})\s*•\s*PUCT\s*Cert/im);
-  if (repLabeled)  meta.provider = repLabeled[1].trim().replace(/\s+/g, " ");
-  else if (repPuct) meta.provider = repPuct[1].trim();
+  if (repLabeled && isCleanText(repLabeled[1]))  meta.provider = sanitize(repLabeled[1]);
+  else if (repPuct && isCleanText(repPuct[1]))  meta.provider = sanitize(repPuct[1]);
 
   const planLabeled = text.match(/(?:plan name|product name)[:\s]+([^\n]{3,80})/i);
-  if (planLabeled) {
-    meta.planName = planLabeled[1].trim();
+  if (planLabeled && isCleanText(planLabeled[1])) {
+    meta.planName = sanitize(planLabeled[1]);
   } else {
     const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
-    const puct = lines.findIndex(l => /PUCT\s*Cert/i.test(l));
-    if (puct !== -1 && lines[puct + 1]) meta.planName = lines[puct + 1];
-    else if (lines[1] && lines[1].length > 4) meta.planName = lines[1];
+    const puct  = lines.findIndex(l => /PUCT\s*Cert/i.test(l));
+    if (puct !== -1 && lines[puct + 1] && isCleanText(lines[puct + 1])) {
+      meta.planName = sanitize(lines[puct + 1]);
+    } else if (lines[1] && lines[1].length > 4 && isCleanText(lines[1])) {
+      meta.planName = sanitize(lines[1]);
+    }
   }
 
   const etf = flat.match(/\$\s*([\d,]+(?:\.\d+)?)\s*(?:early\s*termination|cancellation)\s*fee/i)
@@ -138,14 +227,21 @@ export async function onRequest({ request }) {
     return new Response(null, { headers: CORS });
   }
 
-  const url = new URL(request.url);
+  const url    = new URL(request.url);
   const eflUrl = url.searchParams.get("url");
-
   if (!eflUrl) {
     return new Response(JSON.stringify({ error: "Missing url parameter" }), { headers: CORS, status: 400 });
   }
 
   const ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36";
+
+  async function tryPdf(buffer) {
+    const text  = await extractPdfText(buffer);
+    const rates = extractRates(text);
+    const meta  = extractMeta(text);
+    if (!ratesAreValid(rates)) return null;
+    return { text, rates, meta };
+  }
 
   try {
     const isPdf = /\.pdf(\?|$)/i.test(eflUrl);
@@ -154,38 +250,27 @@ export async function onRequest({ request }) {
     if (isPdf) {
       const res = await fetch(eflUrl, { headers: { "User-Agent": ua } });
       if (!res.ok) throw new Error(`HTTP ${res.status} fetching PDF`);
-      const buffer = await res.arrayBuffer();
-      const text = extractTextFromPdfBytes(buffer);
-      const rates = extractRates(text);
-      const meta  = extractMeta(text);
-      if (!rates) {
+      const result = await tryPdf(await res.arrayBuffer());
+      if (!result) {
         return new Response(JSON.stringify({
           success: false,
-          error: "Found the PDF but could not locate the rate table. It may be image-based (scanned). Try entering the three rates manually.",
+          error: "Could not extract rates from this PDF. It may use image-based text (scanned). Try entering the three rates manually from the EFL document.",
         }), { headers: CORS });
       }
-      return new Response(JSON.stringify({ success: true, source: "pdf", rates, meta }), { headers: CORS });
+      return new Response(JSON.stringify({ success: true, source: "pdf", rates: result.rates, meta: result.meta }), { headers: CORS });
     }
 
     // ── HTML page ───────────────────────────────────────────────────────────
-    const res = await fetch(eflUrl, {
-      headers: { "User-Agent": ua, Accept: "text/html,*/*" },
-    });
+    const res = await fetch(eflUrl, { headers: { "User-Agent": ua, Accept: "text/html,*/*" } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const contentType = res.headers.get("content-type") ?? "";
 
-    // Sometimes a URL looks like HTML but server returns a PDF
+    // Server returned a PDF despite HTML-looking URL
     if (contentType.includes("application/pdf")) {
-      const buffer = await res.arrayBuffer();
-      const text = extractTextFromPdfBytes(buffer);
-      const rates = extractRates(text);
-      const meta  = extractMeta(text);
-      if (rates) return new Response(JSON.stringify({ success: true, source: "pdf", rates, meta }), { headers: CORS });
-      return new Response(JSON.stringify({
-        success: false,
-        error: "PDF is image-based and cannot be read automatically. Enter the three rates manually.",
-      }), { headers: CORS });
+      const result = await tryPdf(await res.arrayBuffer());
+      if (result) return new Response(JSON.stringify({ success: true, source: "pdf", rates: result.rates, meta: result.meta }), { headers: CORS });
+      return new Response(JSON.stringify({ success: false, error: "PDF is image-based and cannot be read automatically. Enter the three rates manually." }), { headers: CORS });
     }
 
     const html = await res.text();
@@ -195,46 +280,33 @@ export async function onRequest({ request }) {
       .replace(/<script[\s\S]*?<\/script>/gi, " ")
       .replace(/<style[\s\S]*?<\/style>/gi, " ")
       .replace(/<[^>]+>/g, " ")
-      .replace(/&nbsp;/g, " ")
-      .replace(/&amp;/g, "&")
-      .replace(/&cent;/g, "¢")
+      .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&cent;/g, "¢")
       .replace(/\s{2,}/g, " ");
 
     const htmlRates = extractRates(stripped);
-    if (htmlRates) {
-      const meta = extractMeta(stripped);
-      return new Response(JSON.stringify({ success: true, source: "html", rates: htmlRates, meta }), { headers: CORS });
+    if (ratesAreValid(htmlRates)) {
+      return new Response(JSON.stringify({ success: true, source: "html", rates: htmlRates, meta: extractMeta(stripped) }), { headers: CORS });
     }
 
-    // Look for an embedded PDF link and try to fetch it
+    // Look for an embedded PDF link and try fetching it
     const pdfMatch = html.match(/["'](https?:\/\/[^"']+\.pdf[^"']*)/i)
                   || html.match(/href=["']([^"']+\.pdf[^"']*)/i);
     if (pdfMatch) {
-      const pdfUrl = pdfMatch[1].startsWith("http")
-        ? pdfMatch[1]
-        : new URL(pdfMatch[1], eflUrl).href;
+      const pdfUrl = pdfMatch[1].startsWith("http") ? pdfMatch[1] : new URL(pdfMatch[1], eflUrl).href;
       const pr = await fetch(pdfUrl, { headers: { "User-Agent": ua } });
       if (pr.ok) {
-        const buffer = await pr.arrayBuffer();
-        const text = extractTextFromPdfBytes(buffer);
-        const rates = extractRates(text);
-        const meta  = extractMeta(text);
-        if (rates) {
-          return new Response(JSON.stringify({ success: true, source: "embedded-pdf", rates, meta }), { headers: CORS });
-        }
+        const result = await tryPdf(await pr.arrayBuffer());
+        if (result) return new Response(JSON.stringify({ success: true, source: "embedded-pdf", rates: result.rates, meta: result.meta }), { headers: CORS });
       }
     }
 
     return new Response(JSON.stringify({
       success: false,
-      error: "Could not find the rate table in this page. If you have the direct PDF link, paste that instead. Or use the zip code search to find the plan's published rates.",
-      hint: "Some providers use JavaScript to render their EFL pages — try finding the direct .pdf link from the EFL page.",
+      error: "Could not extract rates from this page. The provider may use a format that cannot be read automatically.",
+      hint: "Try finding the direct PDF link from the EFL page and paste that URL instead.",
     }), { headers: CORS });
 
   } catch (err) {
-    return new Response(JSON.stringify({
-      success: false,
-      error: err.message,
-    }), { headers: CORS, status: 500 });
+    return new Response(JSON.stringify({ success: false, error: err.message }), { headers: CORS, status: 500 });
   }
 }
