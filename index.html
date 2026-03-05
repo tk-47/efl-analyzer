@@ -1545,8 +1545,9 @@ function clearFindFilters() {
   renderFindTable();
 }
 
-function analyzePlan(p) {
+async function analyzePlan(p) {
   switchTab('single');
+  // Fill immediately with zip-lookup rates so tab is responsive
   document.getElementById('providerName').value = p.provider  || '';
   document.getElementById('planName').value     = p.planName  || '';
   document.getElementById('planType').value     = p.planType  || 'fixed';
@@ -1559,28 +1560,86 @@ function analyzePlan(p) {
     for (const opt of sel.options) { if (opt.value === String(p.term)) { sel.value = p.term; break; } }
   }
   if (p.eflUrl) document.getElementById('eflUrl').value = p.eflUrl;
-  // Carry over the usage from the find tab
   const usage = getFindUsage();
   if (usage) document.getElementById('myUsage').value = usage;
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Auto-extract precise rates directly from the official EFL document
+  if (p.eflUrl) {
+    setExtractStatus('loading', '⏳ Auto-extracting precise rates from official EFL document…');
+    document.getElementById('btnExtract').disabled = true;
+    try {
+      const res  = await fetch(`/api/extract?url=${encodeURIComponent(p.eflUrl)}`);
+      const data = await res.json();
+      if (data.success && data.rates) {
+        applyRates(data.rates, data.meta || {});
+        setExtractStatus('success', `✅ Precise rates extracted from official EFL (${data.source}). More accurate than zip-lookup — ready to calculate.`);
+      } else {
+        setExtractStatus('warn', `⚠️ Using zip-lookup rates (EFL auto-extract failed: ${data.error || 'unavailable'}). You can still calculate — or paste the EFL URL above and try Extract manually.`);
+      }
+    } catch (e) {
+      setExtractStatus('warn', '⚠️ Using zip-lookup rates (could not reach EFL document). You can still calculate below.');
+    } finally {
+      document.getElementById('btnExtract').disabled = false;
+    }
+  }
 }
 
-function addToCompare(p) {
+async function addToCompare(p) {
   switchTab('compare');
   const name = p.provider + ' — ' + p.planName;
-  // Fill the first empty card (no r1000 value) before adding a new one
-  const emptyCard = [...document.querySelectorAll('.plan-card')]
+
+  // Find first empty card or create a new one
+  let card = [...document.querySelectorAll('.plan-card')]
     .find(c => !c.querySelector('.p-r1000').value);
-  if (emptyCard) {
-    emptyCard.querySelector('.plan-title-input').value = name;
-    emptyCard.querySelector('.p-r500').value  = p.r500  ?? '';
-    emptyCard.querySelector('.p-r1000').value = p.r1000 ?? '';
-    emptyCard.querySelector('.p-r2000').value = p.r2000 ?? '';
-    if (p.etf) emptyCard.querySelector('.p-etf').value = p.etf;
+
+  if (card) {
+    card.querySelector('.plan-title-input').value = name;
+    card.querySelector('.p-r500').value  = p.r500  ?? '';
+    card.querySelector('.p-r1000').value = p.r1000 ?? '';
+    card.querySelector('.p-r2000').value = p.r2000 ?? '';
+    if (p.etf) card.querySelector('.p-etf').value = p.etf;
   } else if (planCardCount < MAX_PLANS) {
     addPlanCard({ name, r500: p.r500, r1000: p.r1000, r2000: p.r2000, etf: p.etf });
+    card = document.querySelector('#planCards .plan-card:last-child');
   } else {
     alert('Maximum 4 plans in Compare. Remove one first.');
+    return;
+  }
+
+  // Auto-extract precise rates from the official EFL document
+  if (p.eflUrl && card) {
+    const zone      = card.querySelector('.drop-zone');
+    const urlInput  = zone?.querySelector('.p-url');
+    const statusEl  = zone?.querySelector('.drop-zone-status');
+    if (urlInput) urlInput.value = p.eflUrl;
+    if (zone)     zone.className = 'drop-zone loading';
+    if (statusEl) statusEl.textContent = 'Extracting EFL…';
+
+    try {
+      const res  = await fetch(`/api/extract?url=${encodeURIComponent(p.eflUrl)}`);
+      const data = await res.json();
+      if (data.success && data.rates) {
+        if (data.rates.r500)  card.querySelector('.p-r500').value  = data.rates.r500;
+        if (data.rates.r1000) card.querySelector('.p-r1000').value = data.rates.r1000;
+        if (data.rates.r2000) card.querySelector('.p-r2000').value = data.rates.r2000;
+        if (data.meta?.planName) card.querySelector('.plan-title-input').value = data.meta.planName;
+        if (data.meta?.etf)      card.querySelector('.p-etf').value = data.meta.etf;
+        if (data.meta?.creditThreshold) {
+          const sel = card.querySelector('.p-threshold');
+          const opt = [...sel.options].find(o => o.value === String(data.meta.creditThreshold));
+          if (opt) sel.value = data.meta.creditThreshold;
+        }
+        if (zone)     zone.className = 'drop-zone loaded';
+        if (statusEl) statusEl.textContent = '✓ Precise EFL rates loaded';
+      } else {
+        if (zone)     zone.className = 'drop-zone';
+        if (statusEl) statusEl.textContent = 'Using zip rates (EFL unavailable)';
+      }
+    } catch (e) {
+      if (zone)     zone.className = 'drop-zone';
+      if (statusEl) statusEl.textContent = 'Using zip rates';
+    }
   }
 }
 
